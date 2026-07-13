@@ -112,3 +112,13 @@ def test_example_data_demonstrates_conflict_reduction():
     result = GreedySolver().solve(links, 10.0, 20.0)
     assert before.conflict_count > 0
     assert result.after_metrics.conflict_count < before.conflict_count
+
+
+def test_example_conflicts_span_multiple_frequency_colors():
+    from core.conflicts import analyze_conflicts
+
+    links = dataframe_to_links(example_dataframe())
+    conflicts = [record for record in analyze_conflicts(links, 10.0, 20.0) if record.is_conflict]
+    frequencies = {record.left.frequency_ghz for record in conflicts} | {record.right.frequency_ghz for record in conflicts}
+    assert len(conflicts) == 10
+    assert len(frequencies) >= 3

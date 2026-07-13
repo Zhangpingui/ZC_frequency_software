@@ -62,18 +62,19 @@ class ConflictCanvas(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self); painter.setRenderHint(QPainter.Antialiasing); painter.fillRect(self.rect(), QColor("#171f2b"))
-        top, bottom = 35, self.height()-100; row_height = max(32, (bottom-top)/max(1, len(self.records)))
-        left_x, right_x = 130, self.width()-130
+        top, bottom = 35, self.height()-100; row_height = (bottom-top)/max(1, len(self.records))
+        left_x, right_x = 175, self.width()-175
         for index, record in enumerate(self.records):
             y = top + (index+.5)*row_height
-            painter.setPen(QPen(QColor("#39454e"), 1)); painter.drawLine(20, int(y+row_height/2), self.width()-20, int(y+row_height/2))
+            painter.setPen(QPen(QColor("#39454e"), 1)); painter.drawLine(20, int(top+(index+1)*row_height), self.width()-20, int(top+(index+1)*row_height))
             if record.is_conflict:
                 painter.setPen(QPen(QColor("#ff3344"), 4)); painter.drawLine(left_x, int(y), right_x, int(y))
-            for x, link, align in ((left_x, record.left, Qt.AlignRight), (right_x, record.right, Qt.AlignLeft)):
-                painter.setBrush(QColor(frequency_to_hex(link.frequency_ghz))); painter.setPen(QPen(QColor("#eef1ef"), 1)); painter.drawEllipse(QPointF(x, y), 16, 16)
-                label = f"{link.transmitter.device_id}–{link.receiver.device_id}  {link.frequency_ghz:.2f}G"
-                rect = QRectF(x-125 if x == left_x else x+22, y-11, 100, 22)
-                painter.setPen(QColor("#e3e7e5")); painter.drawText(rect, align|Qt.AlignVCenter, label)
+            radius = min(15.0, max(6.0, row_height * 0.24))
+            for x, link in ((left_x, record.left), (right_x, record.right)):
+                painter.setBrush(QColor(frequency_to_hex(link.frequency_ghz))); painter.setPen(QPen(QColor("#eef1ef"), 1)); painter.drawEllipse(QPointF(x, y), radius, radius)
+                painter.setPen(QColor("#e3e7e5")); painter.setFont(QFont("PingFang SC", 8))
+                painter.drawText(QRectF(x-105, y-radius-22, 210, 18), Qt.AlignCenter, f"{link.transmitter.device_id}–{link.receiver.device_id}")
+                painter.drawText(QRectF(x-55, y+radius+2, 110, 16), Qt.AlignCenter, f"{link.frequency_ghz:.2f}G")
         legend = QRectF(55, self.height()-55, self.width()-110, 18); gradient = QLinearGradient(legend.left(), 0, legend.right(), 0)
         for index, color in enumerate(FREQUENCY_STOPS): gradient.setColorAt(index/(len(FREQUENCY_STOPS)-1), QColor(color))
         painter.fillRect(legend, gradient); painter.setPen(QColor("#e3e7e5"))

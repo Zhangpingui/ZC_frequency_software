@@ -41,3 +41,10 @@ def test_sidebar_renders_after_active_page_updates_state():
 def test_navigation_calls_second_page_physical_topology():
     source = Path("ui/navigation.py").read_text(encoding="utf-8")
     assert '("topology", "02", "物理拓扑")' in source
+
+
+def test_task_number_is_not_rendered():
+    web_shell = Path("ui/shell.py").read_text(encoding="utf-8")
+    desktop = Path("desktop/main_window.py").read_text(encoding="utf-8")
+    assert "任务编号" not in web_shell
+    assert "任务编号" not in desktop

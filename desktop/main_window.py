@@ -258,7 +258,7 @@ class MainWindow(QMainWindow):
         self.resize(1500, 920); self.setMinimumSize(1100, 720); self.setStyleSheet(APP_STYLESHEET)
         central = QWidget(); root = QVBoxLayout(central); root.setContentsMargins(18, 16, 18, 12); root.setSpacing(12)
         header = QFrame(objectName="header"); header_layout = QHBoxLayout(header)
-        header_layout.addWidget(QLabel("ZS", objectName="brand")); titles = QVBoxLayout(); titles.addWidget(QLabel("频谱资源规划与冲突分析", objectName="subtitle")); titles.addWidget(QLabel("战场频谱智能指配系统", objectName="title")); header_layout.addLayout(titles); header_layout.addStretch(); self.task = QLabel("任务编号  ZS-2026-001"); header_layout.addWidget(self.task)
+        header_layout.addWidget(QLabel("ZS", objectName="brand")); titles = QVBoxLayout(); titles.addWidget(QLabel("频谱资源规划与冲突分析", objectName="subtitle")); titles.addWidget(QLabel("战场频谱智能指配系统", objectName="title")); header_layout.addLayout(titles); header_layout.addStretch()
         root.addWidget(header)
         self.stack = QStackedWidget(); self.parameters = ParameterPage(self.state); self.topology = TopologyPage(self.state); self.analysis = AnalysisPage(self.state)
         self.stack.addWidget(self.parameters); self.stack.addWidget(self.topology); self.stack.addWidget(self.analysis); root.addWidget(self.stack, 1)

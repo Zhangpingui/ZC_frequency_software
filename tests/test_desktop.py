@@ -37,3 +37,4 @@ def test_desktop_conflict_canvas_supports_filtering_and_pagination():
     assert "only_conflicts" in source
     assert "page_size" in source
     assert "total_pages" in source
+    assert "max(32" not in source
