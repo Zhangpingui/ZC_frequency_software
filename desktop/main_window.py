@@ -96,7 +96,7 @@ class TopologyPage(QWidget):
         root.addLayout(_page_heading("物理拓扑", "导入 Excel、CSV 或 JSON，验证 100 × 100 km 作战区域通信拓扑。"))
         columns = QHBoxLayout(); root.addLayout(columns, 1)
         left, left_body = _panel(); self.chart = TopologyCanvas(); left_body.addWidget(self.chart)
-        right, right_body = _panel(); right.setFixedWidth(330)
+        right, right_body = _panel(); right.setFixedWidth(300)
         right_body.addWidget(QLabel("数据接入", objectName="section"))
         upload = QPushButton("导入本地数据文件", objectName="primary"); upload.clicked.connect(self.import_file)
         mock = QPushButton("生成并加载模拟数据"); mock.clicked.connect(self.load_mock)
@@ -161,7 +161,7 @@ class AnalysisPage(QWidget):
         paging = QHBoxLayout(); self.previous_page = QPushButton("上一页"); self.page_label = QLabel("第 1/1 页", objectName="muted"); self.next_page = QPushButton("下一页")
         paging.addStretch(); paging.addWidget(self.previous_page); paging.addWidget(self.page_label); paging.addWidget(self.next_page); paging.addStretch(); left_body.addLayout(paging)
         self.metrics = QLabel("尚未执行冲突检测", objectName="metric"); left_body.addWidget(self.metrics)
-        right, controls = _panel(); right.setFixedWidth(330); controls.addWidget(QLabel("计算控制台", objectName="section"))
+        right, controls = _panel(); right.setFixedWidth(300); controls.addWidget(QLabel("计算控制台", objectName="section"))
         self.threshold = QDoubleSpinBox(); self.threshold.setRange(0, 500); self.threshold.setValue(10); self.threshold.setSuffix(" km")
         self.guard = QDoubleSpinBox(); self.guard.setRange(0, 1000); self.guard.setValue(20); self.guard.setSuffix(" MHz")
         self.algorithm = QComboBox(); self.algorithm.addItems(["贪婪算法", "DQN-GNN", "遗传算法", "禁忌搜索"])
@@ -255,7 +255,7 @@ class AnalysisPage(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__(); self.state = DesktopState(); self.setWindowTitle("战场频谱智能指配系统")
-        self.resize(1500, 920); self.setMinimumSize(1100, 720); self.setStyleSheet(APP_STYLESHEET)
+        self.resize(1100, 760); self.setMinimumSize(900, 620); self.setStyleSheet(APP_STYLESHEET)
         central = QWidget(); root = QVBoxLayout(central); root.setContentsMargins(18, 16, 18, 12); root.setSpacing(12)
         header = QFrame(objectName="header"); header_layout = QHBoxLayout(header)
         header_layout.addWidget(QLabel("ZS", objectName="brand")); titles = QVBoxLayout(); titles.addWidget(QLabel("频谱资源规划与冲突分析", objectName="subtitle")); titles.addWidget(QLabel("战场频谱智能指配系统", objectName="title")); header_layout.addLayout(titles); header_layout.addStretch()

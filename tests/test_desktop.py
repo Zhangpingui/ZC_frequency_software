@@ -30,6 +30,20 @@ def test_desktop_ui_contains_web_feature_controls():
     source = __import__("pathlib").Path("desktop/main_window.py").read_text(encoding="utf-8")
     for label in ("只看冲突", "搜索链路 ID", "每页", "下载当前结果 CSV", "覆盖区域", "上一步", "下一步"):
         assert label in source
+    assert "resize(1500, 920)" not in source
+
+
+def test_desktop_charts_use_compact_and_collision_aware_labels():
+    source = __import__("pathlib").Path("desktop/charts.py").read_text(encoding="utf-8")
+    assert "_device_groups" in source
+    assert "label = f\"{link.transmitter.device_id}–{link.receiver.device_id} · {link.frequency_ghz:.2f}G\"" in source
+
+
+def test_desktop_supports_fullscreen_button_and_shortcuts():
+    source = __import__("pathlib").Path("desktop/main_window.py").read_text(encoding="utf-8")
+    assert "全屏显示" in source
+    assert 'QKeySequence("F11")' in source
+    assert 'QKeySequence("Escape")' in source
 
 
 def test_desktop_conflict_canvas_supports_filtering_and_pagination():
