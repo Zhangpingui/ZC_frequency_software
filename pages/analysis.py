@@ -1,11 +1,10 @@
 import math
 
-import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
 from core.conflicts import analyze_conflicts
-from core.io import dataframe_to_links, example_dataframe
+from core.io import dataframe_to_links, example_dataframe, links_to_csv_bytes
 from core.metrics import calculate_metrics
 from core.solvers import get_solver
 from visualization import build_conflict_pair_figure, build_frequency_legend
@@ -15,17 +14,6 @@ def _load_demo() -> None:
     frame = example_dataframe()
     st.session_state.source_frame = frame
     st.session_state.links = dataframe_to_links(frame)
-
-
-def _csv_bytes(links) -> bytes:
-    rows = [{
-        "link_id": link.link_id, "tx_id": link.transmitter.device_id,
-        "tx_x_km": link.transmitter.x_km, "tx_y_km": link.transmitter.y_km,
-        "rx_id": link.receiver.device_id, "rx_x_km": link.receiver.x_km,
-        "rx_y_km": link.receiver.y_km, "frequency_ghz": link.frequency_ghz,
-        "bandwidth_mhz": link.bandwidth_mhz, "tx_power_dbm": link.tx_power_dbm,
-    } for link in links]
-    return pd.DataFrame(rows).to_csv(index=False).encode("utf-8-sig")
 
 
 def _metric_cards(links, threshold, guard):
@@ -76,7 +64,7 @@ def render() -> None:
                 st.session_state.analysis_records = analyze_conflicts(st.session_state.links, threshold, guard)
                 st.success(f"{algorithm} 完成 · {result.elapsed_seconds:.3f}s" + (" · 演示模式" if result.is_demo else ""))
             result_links = st.session_state.optimized_links or st.session_state.links
-            st.download_button("下载当前结果 CSV", data=_csv_bytes(result_links), file_name="频谱指配结果.csv",
+            st.download_button("下载当前结果 CSV", data=links_to_csv_bytes(result_links), file_name="频谱指配结果.csv",
                                mime="text/csv", use_container_width=True)
     with left:
         view = st.radio("方案视图", ["优化前", "优化后"], horizontal=True,

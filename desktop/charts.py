@@ -45,8 +45,20 @@ class ConflictCanvas(QWidget):
     def __init__(self):
         super().__init__(); self.records = []; self.setMinimumSize(620, 520)
 
-    def set_records(self, records):
-        self.records = [record for record in records if record.is_conflict][:20]; self.update()
+    def set_records(self, records, only_conflicts=True, search="", page=1, page_size=20):
+        filtered = list(records)
+        if search:
+            query = search.strip().lower()
+            filtered = [record for record in filtered if query in record.left.link_id.lower() or query in record.right.link_id.lower()]
+        if only_conflicts:
+            filtered = [record for record in filtered if record.is_conflict]
+        self.total_records = len(filtered)
+        self.total_pages = max(1, (self.total_records + page_size - 1) // page_size)
+        self.page = min(max(1, page), self.total_pages)
+        start = (self.page - 1) * page_size
+        self.records = filtered[start:start + page_size]
+        self.update()
+        return self.total_records, self.total_pages, self.page
 
     def paintEvent(self, event):
         painter = QPainter(self); painter.setRenderHint(QPainter.Antialiasing); painter.fillRect(self.rect(), QColor("#171f2b"))
@@ -55,7 +67,8 @@ class ConflictCanvas(QWidget):
         for index, record in enumerate(self.records):
             y = top + (index+.5)*row_height
             painter.setPen(QPen(QColor("#39454e"), 1)); painter.drawLine(20, int(y+row_height/2), self.width()-20, int(y+row_height/2))
-            painter.setPen(QPen(QColor("#ff3344"), 4)); painter.drawLine(left_x, int(y), right_x, int(y))
+            if record.is_conflict:
+                painter.setPen(QPen(QColor("#ff3344"), 4)); painter.drawLine(left_x, int(y), right_x, int(y))
             for x, link, align in ((left_x, record.left, Qt.AlignRight), (right_x, record.right, Qt.AlignLeft)):
                 painter.setBrush(QColor(frequency_to_hex(link.frequency_ghz))); painter.setPen(QPen(QColor("#eef1ef"), 1)); painter.drawEllipse(QPointF(x, y), 16, 16)
                 label = f"{link.transmitter.device_id}–{link.receiver.device_id}  {link.frequency_ghz:.2f}G"

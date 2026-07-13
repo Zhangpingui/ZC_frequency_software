@@ -2,12 +2,12 @@ from pathlib import Path
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
-    QComboBox, QDoubleSpinBox, QFileDialog, QFormLayout, QFrame, QGridLayout,
-    QHBoxLayout, QLabel, QMainWindow, QMessageBox, QPushButton, QSpinBox,
+    QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog, QFormLayout, QFrame,
+    QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton, QSpinBox,
     QStackedWidget, QTabWidget, QVBoxLayout, QWidget,
 )
 
-from core.io import example_dataframe, parse_uploaded_data, template_xlsx_bytes
+from core.io import example_dataframe, links_to_csv_bytes, parse_uploaded_data, template_xlsx_bytes
 from core.metrics import calculate_metrics
 from core.models import ScenarioParameters
 from core.validation import validate_scenario
@@ -131,8 +131,13 @@ class TopologyPage(QWidget):
         else:
             self.chart.set_links([])
         devices = {d.device_id for link in self.state.links for d in (link.transmitter, link.receiver)}
+        if devices:
+            points = [device for link in self.state.links for device in (link.transmitter, link.receiver)]
+            area = f"{max(d.x_km for d in points)-min(d.x_km for d in points):.1f} × {max(d.y_km for d in points)-min(d.y_km for d in points):.1f} km"
+        else:
+            area = "—"
         self.source.setText(f"数据源：{self.state.source_name}")
-        self.summary.setText(f"设备数 {len(devices)}\n通信链路 {len(self.state.links)}\n字段完整率 {'100' if self.state.links else '0'}%")
+        self.summary.setText(f"设备数 {len(devices)}\n通信链路 {len(self.state.links)}\n覆盖区域 {area}\n字段完整率 {'100' if self.state.links else '0'}%")
 
 
 class AnalysisPage(QWidget):
@@ -146,7 +151,15 @@ class AnalysisPage(QWidget):
         left, left_body = _panel(); self.tabs = QTabWidget()
         self.before_chart = ConflictCanvas(); self.after_chart = ConflictCanvas()
         self.tabs.addTab(self.before_chart, "优化前"); self.tabs.addTab(self.after_chart, "优化后")
+        filters = QHBoxLayout()
+        self.only_conflicts = QCheckBox("只看冲突"); self.only_conflicts.setChecked(True)
+        self.search = QLineEdit(); self.search.setPlaceholderText("搜索链路 ID，例如 L03")
+        self.page_size = QComboBox(); self.page_size.addItems(["10", "20", "50"]); self.page_size.setCurrentText("20")
+        filters.addWidget(self.only_conflicts); filters.addWidget(self.search, 1); filters.addWidget(QLabel("每页")); filters.addWidget(self.page_size)
+        left_body.addLayout(filters)
         left_body.addWidget(self.tabs)
+        paging = QHBoxLayout(); self.previous_page = QPushButton("上一页"); self.page_label = QLabel("第 1/1 页", objectName="muted"); self.next_page = QPushButton("下一页")
+        paging.addStretch(); paging.addWidget(self.previous_page); paging.addWidget(self.page_label); paging.addWidget(self.next_page); paging.addStretch(); left_body.addLayout(paging)
         self.metrics = QLabel("尚未执行冲突检测", objectName="metric"); left_body.addWidget(self.metrics)
         right, controls = _panel(); right.setFixedWidth(330); controls.addWidget(QLabel("计算控制台", objectName="section"))
         self.threshold = QDoubleSpinBox(); self.threshold.setRange(0, 500); self.threshold.setValue(10); self.threshold.setSuffix(" km")
@@ -156,10 +169,19 @@ class AnalysisPage(QWidget):
         controls.addLayout(form)
         detect = QPushButton("1. 检测当前方案冲突", objectName="primary"); detect.clicked.connect(self.detect)
         optimize = QPushButton("2. 选择算法并优化频率"); optimize.clicked.connect(self.optimize)
+        download = QPushButton("下载当前结果 CSV"); download.clicked.connect(self.save_csv)
         controls.addWidget(detect); controls.addWidget(optimize)
+        controls.addWidget(download)
         self.mode_note = QLabel("DQN-GNN、遗传算法、禁忌搜索当前为演示适配器。", objectName="muted"); self.mode_note.setWordWrap(True)
         controls.addWidget(self.mode_note); controls.addStretch()
         columns.addWidget(left, 1); columns.addWidget(right)
+        self.page = 1
+        self.only_conflicts.toggled.connect(self.reset_page)
+        self.search.textChanged.connect(self.reset_page)
+        self.page_size.currentTextChanged.connect(self.reset_page)
+        self.previous_page.clicked.connect(lambda: self.change_page(-1))
+        self.next_page.clicked.connect(lambda: self.change_page(1))
+        self.tabs.currentChanged.connect(lambda _: self.refresh_records())
         self.refresh()
 
     def _sync_settings(self):
@@ -167,18 +189,46 @@ class AnalysisPage(QWidget):
 
     def detect(self):
         if not self.state.links:
-            QMessageBox.warning(self, "缺少数据", "请先在数据建模页面导入或生成模拟数据。")
+            QMessageBox.warning(self, "缺少数据", "请先在物理拓扑页面导入或生成模拟数据。")
             return
         self._sync_settings(); self.state.detect_conflicts(); self.refresh(); self.result_changed.emit()
 
     def optimize(self):
         if not self.state.links:
-            QMessageBox.warning(self, "缺少数据", "请先在数据建模页面导入或生成模拟数据。")
+            QMessageBox.warning(self, "缺少数据", "请先在物理拓扑页面导入或生成模拟数据。")
             return
         self._sync_settings(); result = self.state.optimize(self.algorithm.currentText()); self.refresh(); self.tabs.setCurrentIndex(1)
         suffix = "（演示模式）" if result.is_demo else ""
         QMessageBox.information(self, "计算完成", f"{result.algorithm_name}{suffix} 已完成频率优化。")
         self.result_changed.emit()
+
+    def save_csv(self):
+        links = self.state.optimized_links or self.state.links
+        if not links:
+            QMessageBox.warning(self, "缺少数据", "当前没有可导出的频谱指配结果。")
+            return
+        path, _ = QFileDialog.getSaveFileName(self, "保存频谱指配结果", "频谱指配结果.csv", "CSV (*.csv)")
+        if path:
+            Path(path).write_bytes(links_to_csv_bytes(links))
+
+    def reset_page(self, *args):
+        self.page = 1
+        self.refresh_records()
+
+    def change_page(self, offset):
+        self.page += offset
+        self.refresh_records()
+
+    def refresh_records(self):
+        if not self.state.links:
+            self.before_chart.set_records([]); self.after_chart.set_records([]); return
+        records = self.state.detect_conflicts(self.tabs.currentIndex() == 1)
+        canvas = self.after_chart if self.tabs.currentIndex() == 1 else self.before_chart
+        total, pages, self.page = canvas.set_records(
+            records, self.only_conflicts.isChecked(), self.search.text(), self.page, int(self.page_size.currentText())
+        )
+        self.page_label.setText(f"共 {total} 条记录 · 第 {self.page}/{pages} 页")
+        self.previous_page.setEnabled(self.page > 1); self.next_page.setEnabled(self.page < pages)
 
     def refresh(self):
         if not self.state.links:
@@ -194,7 +244,12 @@ class AnalysisPage(QWidget):
         else:
             self.after_chart.set_records([])
         reduction = (before_metrics.conflict_count-after_metrics.conflict_count)/before_metrics.conflict_count*100 if before_metrics.conflict_count else 0
-        self.metrics.setText(f"冲突：{before_metrics.conflict_count} → {after_metrics.conflict_count} 对    下降率：{reduction:.1f}%    优化后频点数：{after_metrics.unique_frequency_count}")
+        self.metrics.setText(
+            f"冲突：{before_metrics.conflict_count} → {after_metrics.conflict_count} 对    "
+            f"下降率：{reduction:.1f}%    频点数：{after_metrics.unique_frequency_count} 个    "
+            f"占用率：{after_metrics.channel_occupancy_pct:.1f}%    频谱跨度：{after_metrics.span_ghz:.1f} GHz"
+        )
+        self.refresh_records()
 
 
 class MainWindow(QMainWindow):
@@ -207,16 +262,17 @@ class MainWindow(QMainWindow):
         root.addWidget(header)
         self.stack = QStackedWidget(); self.parameters = ParameterPage(self.state); self.topology = TopologyPage(self.state); self.analysis = AnalysisPage(self.state)
         self.stack.addWidget(self.parameters); self.stack.addWidget(self.topology); self.stack.addWidget(self.analysis); root.addWidget(self.stack, 1)
-        navigation = QHBoxLayout(); navigation.addStretch(); self.nav_buttons = []
+        navigation = QHBoxLayout(); self.previous_step = QPushButton("‹ 上一步"); self.previous_step.clicked.connect(lambda: self.navigate(max(0, self.stack.currentIndex()-1))); navigation.addWidget(self.previous_step); navigation.addStretch(); self.nav_buttons = []
         for index, label in enumerate(("01  参数配置", "02  物理拓扑", "03  冲突计算")):
             button = QPushButton(label); button.setCheckable(True); button.clicked.connect(lambda checked=False, page=index: self.navigate(page)); navigation.addWidget(button); self.nav_buttons.append(button)
-        navigation.addStretch(); root.addLayout(navigation); self.setCentralWidget(central)
+        navigation.addStretch(); self.next_step = QPushButton("下一步 ›"); self.next_step.clicked.connect(lambda: self.navigate(min(2, self.stack.currentIndex()+1))); navigation.addWidget(self.next_step); root.addLayout(navigation); self.setCentralWidget(central)
         self.topology.data_changed.connect(self._data_updated); self.analysis.result_changed.connect(self._result_updated)
         self.navigate(0); self.statusBar().showMessage("本地计算模式 · 数据仅在当前应用会话处理")
 
     def navigate(self, index: int):
         self.stack.setCurrentIndex(index)
         for button_index, button in enumerate(self.nav_buttons): button.setChecked(button_index == index)
+        self.previous_step.setEnabled(index > 0); self.next_step.setEnabled(index < 2)
         if index == 1: self.topology.refresh()
         if index == 2: self.analysis.refresh()
 

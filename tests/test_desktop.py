@@ -24,3 +24,16 @@ def test_desktop_entrypoint_is_import_safe():
     import desktop_app
 
     assert callable(desktop_app.main)
+
+
+def test_desktop_ui_contains_web_feature_controls():
+    source = __import__("pathlib").Path("desktop/main_window.py").read_text(encoding="utf-8")
+    for label in ("只看冲突", "搜索链路 ID", "每页", "下载当前结果 CSV", "覆盖区域", "上一步", "下一步"):
+        assert label in source
+
+
+def test_desktop_conflict_canvas_supports_filtering_and_pagination():
+    source = __import__("pathlib").Path("desktop/charts.py").read_text(encoding="utf-8")
+    assert "only_conflicts" in source
+    assert "page_size" in source
+    assert "total_pages" in source

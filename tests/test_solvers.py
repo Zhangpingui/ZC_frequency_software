@@ -5,6 +5,7 @@ def test_solver_registry_accepts_ui_greedy_label():
     assert isinstance(get_solver("贪婪算法"), GreedySolver)
 from core.solvers.demo import DemoSolver
 from core.solvers.greedy import GreedySolver
+from core.io import dataframe_to_links, example_dataframe
 
 
 def test_greedy_does_not_increase_conflicts(link_factory):
@@ -14,6 +15,13 @@ def test_greedy_does_not_increase_conflicts(link_factory):
     assert result.after_metrics.conflict_count <= result.before_metrics.conflict_count
     assert not result.is_demo
     assert all(1.0 <= link.frequency_ghz <= 9.0 for link in result.links)
+
+
+def test_greedy_keeps_realistic_demo_conflicts():
+    links = dataframe_to_links(example_dataframe())
+    result = GreedySolver().solve(links, distance_threshold_km=10)
+    assert result.before_metrics.conflict_count == 10
+    assert 2 <= result.after_metrics.conflict_count <= 4
 
 
 def test_demo_solvers_are_explicit_and_deterministic(link_factory):

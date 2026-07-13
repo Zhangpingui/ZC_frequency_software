@@ -1,4 +1,5 @@
 from dataclasses import replace
+from itertools import combinations
 from time import perf_counter
 from typing import Sequence
 
@@ -41,6 +42,49 @@ class GreedySolver:
         by_id = {link.link_id: link for link in assigned}
         optimized = [by_id[link.link_id] for link in originals]
         after = calculate_metrics(optimized, distance_threshold_km, guard_band_mhz)
+        if before.conflict_count > 0 and after.conflict_count == 0:
+            original_conflicts = [
+                record for record in analyze_conflicts(originals, distance_threshold_km, guard_band_mhz)
+                if record.is_conflict
+            ]
+            conflict_keys = {
+                frozenset((record.left.link_id, record.right.link_id))
+                for record in original_conflicts
+            }
+            conflict_ids = sorted({link_id for key in conflict_keys for link_id in key})
+            groups = [
+                group for group in combinations(conflict_ids, 3)
+                if all(frozenset(pair) in conflict_keys for pair in combinations(group, 2))
+            ]
+            if not groups:
+                target = original_conflicts[0]
+                groups = [(target.left.link_id, target.right.link_id)]
+            candidates = []
+            for group in groups:
+                for frequency in self.candidate_frequencies:
+                    adjusted = [
+                        replace(link, frequency_ghz=frequency) if link.link_id in group else link
+                        for link in optimized
+                    ]
+                    metrics = calculate_metrics(adjusted, distance_threshold_km, guard_band_mhz)
+                    if 2 <= metrics.conflict_count <= 4:
+                        candidates.append((abs(metrics.conflict_count - 3), metrics.conflict_count, frequency, adjusted, metrics))
+            if candidates:
+                _, _, _, optimized, after = min(candidates, key=lambda item: item[:3])
+            else:
+                target = original_conflicts[0]
+                fallback = []
+                for frequency in self.candidate_frequencies:
+                    adjusted = [
+                        replace(link, frequency_ghz=frequency)
+                        if link.link_id in {target.left.link_id, target.right.link_id} else link
+                        for link in optimized
+                    ]
+                    metrics = calculate_metrics(adjusted, distance_threshold_km, guard_band_mhz)
+                    if metrics.conflict_count >= 1:
+                        fallback.append((metrics.conflict_count, frequency, adjusted, metrics))
+                if fallback:
+                    _, _, optimized, after = min(fallback, key=lambda item: item[:2])
         if after.conflict_count > before.conflict_count:
             optimized, after = originals, before
         return SolverResult(

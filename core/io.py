@@ -111,19 +111,27 @@ def parse_uploaded_data(data: bytes, filename: str) -> pd.DataFrame:
 
 def example_dataframe() -> pd.DataFrame:
     rows = []
-    frequencies = (1.0, 2.0, 3.0, 1.5, 1.5, 4.0, 4.5, 5.5, 1.5, 7.5, 7.5, 6.5, 8.5, 9.0, 4.5)
+    positions = (
+        ((10, 10), (12, 12)), ((11, 11), (13, 13)), ((12, 10), (14, 12)),
+        ((13, 11), (15, 13)), ((14, 10), (16, 12)), ((0, 0), (4, 2)),
+        ((30, 10), (34, 12)), ((50, 10), (54, 12)), ((70, 10), (74, 12)),
+        ((90, 10), (94, 12)), ((10, 40), (14, 42)), ((35, 40), (39, 42)),
+        ((60, 40), (64, 42)), ((20, 75), (24, 77)), ((80, 95), (100, 100)),
+    )
+    frequencies = (1.5, 1.5, 1.5, 1.5, 1.5, 2.5, 3.2, 4.0, 4.8, 5.6, 6.4, 7.2, 8.0, 8.6, 9.0)
     for index in range(15):
         tx_number = index * 2 + 1
         rx_number = tx_number + 1
+        (tx_x, tx_y), (rx_x, rx_y) = positions[index]
         rows.append(
             {
                 "link_id": f"L{index + 1:02d}",
                 "tx_id": _device_name(tx_number),
-                "tx_x_km": round(index * 100 / 14, 2),
-                "tx_y_km": round((index * 37) % 101, 2),
+                "tx_x_km": tx_x,
+                "tx_y_km": tx_y,
                 "rx_id": _device_name(rx_number),
-                "rx_x_km": round((index * 53 + 7) % 101, 2),
-                "rx_y_km": round((index * 29 + 13) % 101, 2),
+                "rx_x_km": rx_x,
+                "rx_y_km": rx_y,
                 "frequency_ghz": frequencies[index],
                 "bandwidth_mhz": 20.0,
                 "tx_power_dbm": 30.0,
@@ -144,3 +152,19 @@ def template_xlsx_bytes() -> bytes:
     buffer = BytesIO()
     example_dataframe().to_excel(buffer, index=False)
     return buffer.getvalue()
+
+
+def links_to_csv_bytes(links: list[Link]) -> bytes:
+    rows = [{
+        "link_id": link.link_id,
+        "tx_id": link.transmitter.device_id,
+        "tx_x_km": link.transmitter.x_km,
+        "tx_y_km": link.transmitter.y_km,
+        "rx_id": link.receiver.device_id,
+        "rx_x_km": link.receiver.x_km,
+        "rx_y_km": link.receiver.y_km,
+        "frequency_ghz": link.frequency_ghz,
+        "bandwidth_mhz": link.bandwidth_mhz,
+        "tx_power_dbm": link.tx_power_dbm,
+    } for link in links]
+    return pd.DataFrame(rows).to_csv(index=False).encode("utf-8-sig")
