@@ -95,9 +95,13 @@ def test_example_and_template_have_expected_scale():
     frame = example_dataframe()
     assert len(frame) == 15
     assert len(set(frame["tx_id"]) | set(frame["rx_id"])) == 30
+    assert (frame.loc[0, "tx_id"], frame.loc[0, "rx_id"]) == ("A", "B")
+    assert frame.loc[14, "rx_id"] == "AD"
     assert frame[["tx_x_km", "tx_y_km", "rx_x_km", "rx_y_km"]].min().min() >= 0
     assert frame[["tx_x_km", "tx_y_km", "rx_x_km", "rx_y_km"]].max().max() <= 100
     assert frame["frequency_ghz"].between(1, 9).all()
+    assert frame["frequency_ghz"].min() <= 1.5
+    assert frame["frequency_ghz"].max() >= 8.5
     downloaded = pd.read_excel(BytesIO(template_xlsx_bytes()))
     assert len(downloaded) == 15
 

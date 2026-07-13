@@ -3,7 +3,7 @@ import streamlit as st
 
 STEPS = (
     ("parameters", "01", "参数配置"),
-    ("topology", "02", "数据建模"),
+    ("topology", "02", "物理拓扑"),
     ("analysis", "03", "冲突计算"),
 )
 

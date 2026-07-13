@@ -29,6 +29,15 @@ def test_topology_contains_links_and_unique_devices():
     assert figure.layout.xaxis.range[1] >= 120
 
 
+def test_topology_labels_coordinates_and_pads_boundary_nodes():
+    figure = build_topology_figure(make_links())
+    device_trace = next(trace for trace in figure.data if trace.name == "设备")
+    assert device_trace.mode == "markers+text"
+    assert "(10.0, 20.0)" in device_trace.text[0]
+    assert figure.layout.xaxis.range[0] < 0
+    assert figure.layout.xaxis.range[1] > 120
+
+
 def test_conflict_pairs_draw_one_red_connector_per_conflict():
     left, right = make_links()
     records = [record(left, right, "同频冲突"), record(right, left)]
@@ -38,6 +47,15 @@ def test_conflict_pairs_draw_one_red_connector_per_conflict():
         if getattr(getattr(trace, "line", None), "color", None) == "#ff3344"
     ]
     assert len(red_lines) == 1
+    assert not figure.layout.annotations
+
+
+def test_conflict_pair_nodes_show_link_endpoints():
+    left, right = make_links()
+    figure = build_conflict_pair_figure([record(left, right, "冲突")])
+    node_traces = [trace for trace in figure.data if getattr(trace, "mode", None) == "markers+text"]
+    assert node_traces[0].text[0] == "D1–D2"
+    assert node_traces[1].text[0] == "D2–D3"
 
 
 def test_non_conflict_pair_has_no_connector():

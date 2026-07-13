@@ -36,3 +36,8 @@ def test_analysis_toast_uses_valid_emoji():
 def test_sidebar_renders_after_active_page_updates_state():
     source = Path("app.py").read_text(encoding="utf-8")
     assert source.index("routes.get") < source.index("render_sidebar()")
+
+
+def test_navigation_calls_second_page_physical_topology():
+    source = Path("ui/navigation.py").read_text(encoding="utf-8")
+    assert '("topology", "02", "物理拓扑")' in source

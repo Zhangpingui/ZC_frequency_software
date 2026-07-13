@@ -15,10 +15,20 @@ streamlit run app.py
 
 浏览器默认打开 `http://localhost:8501`。页面底部提供三步导航，会话数据保存在 Streamlit Session State 中；刷新浏览器或服务重启后需重新加载。
 
+### 桌面应用
+
+桌面版使用 PySide6 原生窗口，保留参数配置、物理拓扑、冲突计算和底部导航。macOS 可双击 `run_desktop.command`，或执行：
+
+```bash
+.venv/bin/python desktop_app.py
+```
+
+物理拓扑页可直接生成模拟数据，也可以导出 `模拟频谱链路数据.xlsx` 后重新上传测试。模拟数据包含 30 台设备（A–AD）、15 条链路和分布于 1–9 GHz 的多组频率冲突。
+
 ## 使用流程
 
 1. **参数配置**：编辑七项任务指标，系统通过 `validate_scenario` 校验并保存。
-2. **数据建模**：上传 `.xlsx`、`.csv` 或 `.json` 数据，亦可加载演示数据和下载 Excel 模板；左侧画布显示完整设备与链路拓扑。
+2. **物理拓扑**：上传 `.xlsx`、`.csv` 或 `.json` 数据，亦可生成模拟数据和下载模拟 Excel；左侧画布显示设备名称、二维坐标与通信链路。
 3. **冲突计算**：设置空间干扰阈值和保护频差，检测当前方案冲突，再选择算法优化频率。画布支持优化前/优化后切换、冲突过滤、链路搜索和分页，结果可导出 CSV。
 
 ## 数据字段
@@ -48,6 +58,6 @@ streamlit run app.py
 ## 验证
 
 ```bash
-python3 -m compileall app.py core pages ui visualization
+python3 -m compileall app.py desktop_app.py core desktop pages ui visualization
 python3 -m pytest
 ```

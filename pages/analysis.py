@@ -46,7 +46,7 @@ def render() -> None:
     st.title("冲突计算")
     st.caption("检测当前方案的同频/邻频冲突，并在同一画布切换查看优化前后链路对。")
     if not st.session_state.links:
-        st.warning("当前没有可分析的链路数据。请先进入“数据建模”，或直接加载演示数据。")
+        st.warning("当前没有可分析的链路数据。请先进入“物理拓扑”，或直接加载演示数据。")
         if st.button("加载演示数据并开始", type="primary"):
             _load_demo()
             st.rerun()

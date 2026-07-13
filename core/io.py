@@ -111,24 +111,33 @@ def parse_uploaded_data(data: bytes, filename: str) -> pd.DataFrame:
 
 def example_dataframe() -> pd.DataFrame:
     rows = []
+    frequencies = (1.0, 2.0, 3.0, 1.5, 1.5, 4.0, 4.5, 5.5, 1.5, 7.5, 7.5, 6.5, 8.5, 9.0, 4.5)
     for index in range(15):
         tx_number = index * 2 + 1
         rx_number = tx_number + 1
         rows.append(
             {
                 "link_id": f"L{index + 1:02d}",
-                "tx_id": f"D{tx_number:02d}",
+                "tx_id": _device_name(tx_number),
                 "tx_x_km": round(index * 100 / 14, 2),
                 "tx_y_km": round((index * 37) % 101, 2),
-                "rx_id": f"D{rx_number:02d}",
+                "rx_id": _device_name(rx_number),
                 "rx_x_km": round((index * 53 + 7) % 101, 2),
                 "rx_y_km": round((index * 29 + 13) % 101, 2),
-                "frequency_ghz": round(2.4 + (index % 3) * 0.01, 3),
+                "frequency_ghz": frequencies[index],
                 "bandwidth_mhz": 20.0,
                 "tx_power_dbm": 30.0,
             }
         )
     return pd.DataFrame(rows)
+
+
+def _device_name(number: int) -> str:
+    name = ""
+    while number:
+        number, remainder = divmod(number - 1, 26)
+        name = chr(65 + remainder) + name
+    return name
 
 
 def template_xlsx_bytes() -> bytes:

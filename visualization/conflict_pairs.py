@@ -51,12 +51,14 @@ def build_conflict_pair_figure(records, page=1, page_size=20, only_conflicts=Fal
                 figure.add_trace(go.Scatter(
                     x=[x_position],
                     y=[y_position],
-                    mode="markers",
+                    mode="markers+text",
                     name=side,
                     legendgroup=side,
                     showlegend=row == 0,
                     marker={"size": 28, "color": frequency_to_hex(link.frequency_ghz), "line": {"color": "#e2e8f0", "width": 1}},
-                    text=[link.link_id],
+                    text=[f"{link.transmitter.device_id}–{link.receiver.device_id}"],
+                    textposition="middle left" if x_position == 0 else "middle right",
+                    textfont={"size": 11, "color": "#e2e8f0"},
                     customdata=[[link.frequency_ghz]],
                     hovertemplate="%{text}<br>%{customdata[0]:.3f} GHz<extra></extra>",
                 ))
@@ -67,10 +69,6 @@ def build_conflict_pair_figure(records, page=1, page_size=20, only_conflicts=Fal
                     line={"color": "#ff3344", "width": 3, "dash": "solid"},
                     hoverinfo="skip",
                 ))
-                figure.add_annotation(
-                    x=0.5, y=y_position + 0.16, text=str(record.conflict_type),
-                    showarrow=False, font={"color": "#ff3344", "size": 11},
-                )
         figure.add_trace(build_frequency_legend())
 
     figure.update_layout(

@@ -25,12 +25,15 @@ def build_topology_figure(links) -> go.Figure:
     figure.add_trace(go.Scatter(
         x=[device.x_km for device in ordered_devices],
         y=[device.y_km for device in ordered_devices],
-        mode="markers",
+        mode="markers+text",
         name="设备",
         marker={"size": 12, "color": "#e2e8f0", "line": {"color": "#38bdf8", "width": 2}},
-        text=[device.device_id for device in ordered_devices],
-        customdata=[[device.x_km, device.y_km] for device in ordered_devices],
-        hovertemplate="设备 %{text}<br>x=%{customdata[0]:.2f} km<br>y=%{customdata[1]:.2f} km<extra></extra>",
+        text=[f"{device.device_id} ({device.x_km:.1f}, {device.y_km:.1f})" for device in ordered_devices],
+        textposition="top center",
+        textfont={"size": 10, "color": "#cbd5e1"},
+        cliponaxis=False,
+        customdata=[[device.device_id, device.x_km, device.y_km] for device in ordered_devices],
+        hovertemplate="设备 %{customdata[0]}<br>x=%{customdata[1]:.2f} km<br>y=%{customdata[2]:.2f} km<extra></extra>",
     ))
 
     x_values = [device.x_km for device in ordered_devices] or [0, 100]
@@ -53,5 +56,5 @@ def build_topology_figure(links) -> go.Figure:
 def _axis_range(values):
     lower = min(0.0, min(values))
     upper = max(100.0, max(values))
-    padding = max(2.0, (upper - lower) * 0.05)
-    return [lower - padding if lower < 0 else 0, upper + padding if upper > 100 else 100]
+    padding = max(5.0, (upper - lower) * 0.05)
+    return [lower - padding, upper + padding]
