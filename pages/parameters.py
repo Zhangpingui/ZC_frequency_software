@@ -18,7 +18,7 @@ FIELDS = (
 def render() -> None:
     st.markdown('<div class="page-kicker">01 · 任务场景定义</div>', unsafe_allow_html=True)
     st.title("参数配置")
-    st.caption("定义本次频谱指配任务的规模、现状与优化目标。所有参数将保留在当前会话中。")
+    st.caption("定义本次频谱指配任务的规模、现状与优化目标。")
     saved = st.session_state.scenario
     with st.form("scenario_form", border=True):
         columns = st.columns(2, gap="large")
@@ -42,8 +42,6 @@ def render() -> None:
             )
             validate_scenario(params)
             st.session_state.scenario = params
-            st.success("任务场景已通过校验并保存。可进入“数据建模”导入链路数据。")
+            st.success("任务场景已通过校验并保存。可进入「物理拓扑」导入链路数据。")
         except ValueError as error:
             st.error(f"参数校验失败：{error}")
-    if saved:
-        st.info("当前会话已有已保存场景；再次提交将覆盖原参数。", icon="ℹ️")

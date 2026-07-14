@@ -36,7 +36,6 @@ def render_header() -> None:
           <div><div class="eyebrow">频谱资源规划与冲突分析</div>
           <div class="system-title">战场频谱智能指配演示系统</div></div>
           <div class="header-spacer"></div>
-          <div class="task-chip">任务编号&nbsp; {st.session_state.task_id}</div>
           <div class="ready-chip"><span></span> 系统就绪</div>
         </header>
         """,
@@ -54,8 +53,6 @@ def render_sidebar() -> None:
     algorithm = getattr(st.session_state.solver_result, "algorithm_name", "未执行")
     with st.sidebar:
         st.markdown('<div class="side-heading">任务态势摘要</div>', unsafe_allow_html=True)
-        st.caption("当前任务")
-        st.markdown(f"**{st.session_state.task_id}**")
         st.markdown('<div class="side-divider"></div>', unsafe_allow_html=True)
         st.metric("用频设备", len(devices))
         st.metric("通信链路", len(links))

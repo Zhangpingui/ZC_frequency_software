@@ -31,8 +31,8 @@ def _summary(links) -> tuple[int, int, str, float]:
 
 
 def render() -> None:
-    st.markdown('<div class="page-kicker">02 · 原始数据建模</div>', unsafe_allow_html=True)
-    st.title("数据建模")
+    st.markdown('<div class="page-kicker">02 · 原始物理拓扑</div>', unsafe_allow_html=True)
+    st.title("物理拓扑")
     st.caption("导入链路数据并验证空间拓扑。画布默认覆盖 100 × 100 km 作战区域。")
     left, right = st.columns([2.2, 1], gap="large")
     with right:

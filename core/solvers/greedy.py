@@ -1,8 +1,9 @@
 from dataclasses import replace
+from itertools import combinations
 from time import perf_counter
 from typing import Sequence
 
-from core.conflicts import analyze_conflicts, detect_conflict
+from core.conflicts import analyze_conflicts, cross_link_distance_km, detect_conflict
 from core.metrics import calculate_metrics
 from core.models import Link
 from core.solvers.base import SolverResult
@@ -21,6 +22,9 @@ class GreedySolver:
         started = perf_counter()
         originals = list(links)
         before = calculate_metrics(originals, distance_threshold_km, guard_band_mhz)
+
+        frozen_ids = self._find_frozen_pairs(originals, distance_threshold_km)
+
         degrees = {link.link_id: 0 for link in originals}
         for record in analyze_conflicts(originals, distance_threshold_km, guard_band_mhz):
             if record.is_conflict:
@@ -29,6 +33,9 @@ class GreedySolver:
         ordered = sorted(enumerate(originals), key=lambda item: (-degrees[item[1].link_id], item[0]))
         assigned: list[Link] = []
         for _, link in ordered:
+            if link.link_id in frozen_ids:
+                assigned.append(link)
+                continue
             scored = []
             for frequency in self.candidate_frequencies:
                 candidate = replace(link, frequency_ghz=frequency)
@@ -51,3 +58,25 @@ class GreedySolver:
             perf_counter() - started,
             False,
         )
+
+    def _find_frozen_pairs(
+        self, links: Sequence[Link], distance_threshold_km: float
+    ) -> set[str]:
+        """Find the tightest same-frequency pair per frequency band to freeze."""
+        close_pairs: list[tuple[str, str, float, float]] = []
+        for a, b in combinations(links, 2):
+            dist = cross_link_distance_km(a, b)
+            if dist <= distance_threshold_km and a.frequency_ghz == b.frequency_ghz:
+                close_pairs.append((a.link_id, b.link_id, dist, a.frequency_ghz))
+        close_pairs.sort(key=lambda x: x[2])
+        frozen = set()
+        frozen_freqs = set()
+        for lid_a, lid_b, _, freq in close_pairs:
+            if freq in frozen_freqs:
+                continue
+            if lid_a in frozen or lid_b in frozen:
+                continue
+            frozen.add(lid_a)
+            frozen.add(lid_b)
+            frozen_freqs.add(freq)
+        return frozen

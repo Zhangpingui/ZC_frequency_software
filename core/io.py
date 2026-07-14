@@ -111,23 +111,55 @@ def parse_uploaded_data(data: bytes, filename: str) -> pd.DataFrame:
 
 def example_dataframe() -> pd.DataFrame:
     rows = []
-    for index in range(15):
-        tx_number = index * 2 + 1
-        rx_number = tx_number + 1
-        rows.append(
-            {
-                "link_id": f"L{index + 1:02d}",
-                "tx_id": f"D{tx_number:02d}",
-                "tx_x_km": round(index * 100 / 14, 2),
-                "tx_y_km": round((index * 37) % 101, 2),
-                "rx_id": f"D{rx_number:02d}",
-                "rx_x_km": round((index * 53 + 7) % 101, 2),
-                "rx_y_km": round((index * 29 + 13) % 101, 2),
-                "frequency_ghz": round(2.4 + (index % 3) * 0.01, 3),
-                "bandwidth_mhz": 20.0,
-                "tx_power_dbm": 30.0,
-            }
-        )
+    # Realistic battlefield comm network: command posts, relay stations,
+    # forward units, artillery, recon, EW, logistics across 100x100km AO.
+    links_data = [
+        # --- Alpha sector (command cluster, NW) ---
+        ("L01", "CMD-A", 8, 72, "REL-1", 18, 80, 2.0, 20, 37),
+        ("L02", "CMD-A", 8, 72, "FWD-1", 22, 65, 2.0, 20, 40),
+        ("L03", "REL-1", 18, 80, "FWD-2", 30, 88, 2.0, 20, 33),
+        ("L04", "FWD-2", 30, 88, "ART-1", 25, 70, 2.0, 20, 35),
+        # --- Bravo sector (central relay hub) ---
+        ("L05", "REL-2", 45, 55, "CMD-B", 50, 62, 5.5, 20, 38),
+        ("L06", "REL-2", 45, 55, "FWD-3", 52, 48, 5.5, 20, 36),
+        ("L07", "CMD-B", 50, 62, "ART-2", 55, 70, 5.5, 20, 40),
+        ("L08", "FWD-3", 52, 48, "EW-1", 40, 48, 4.8, 20, 34),
+        ("L09", "EW-1", 40, 48, "RCN-1", 60, 42, 4.8, 20, 30),
+        # --- Charlie sector (eastern forward, SE) ---
+        ("L10", "CMD-C", 78, 25, "REL-3", 85, 18, 7.5, 20, 38),
+        ("L11", "CMD-C", 78, 25, "FWD-4", 72, 18, 7.5, 20, 36),
+        ("L12", "REL-3", 85, 18, "ART-3", 90, 28, 7.2, 20, 35),
+        ("L13", "FWD-4", 72, 18, "RCN-2", 92, 12, 7.5, 20, 30),
+        # --- Cross-sector backbone links ---
+        ("L14", "REL-1", 18, 80, "REL-2", 45, 55, 3.5, 40, 43),
+        ("L15", "REL-2", 45, 55, "CMD-C", 78, 25, 6.2, 40, 43),
+        ("L16", "CMD-A", 8, 72, "CMD-B", 50, 62, 1.8, 40, 45),
+        # --- Support / logistics links ---
+        ("L17", "LOG-1", 15, 40, "LOG-2", 30, 35, 4.5, 20, 30),
+        ("L18", "LOG-2", 30, 35, "FWD-1", 22, 65, 4.2, 20, 30),
+        ("L19", "EW-2", 65, 80, "CMD-B", 50, 62, 6.8, 20, 34),
+        ("L20", "RCN-3", 35, 15, "LOG-2", 30, 35, 3.53, 20, 30),
+        # --- Additional tactical links ---
+        ("L21", "ART-1", 25, 70, "FWD-2", 30, 88, 2.4, 20, 33),
+        ("L22", "RCN-1", 60, 42, "FWD-3", 52, 48, 4.8, 20, 32),
+        ("L23", "FWD-4", 72, 18, "ART-3", 90, 28, 8.2, 20, 35),
+        ("L24", "LOG-1", 15, 40, "CMD-A", 8, 72, 1.5, 20, 36),
+        ("L25", "RCN-2", 92, 12, "ART-3", 90, 28, 8.8, 20, 30),
+    ]
+    for (link_id, tx_id, tx_x, tx_y, rx_id, rx_x, rx_y,
+         freq, bw, power) in links_data:
+        rows.append({
+            "link_id": link_id,
+            "tx_id": tx_id,
+            "tx_x_km": tx_x,
+            "tx_y_km": tx_y,
+            "rx_id": rx_id,
+            "rx_x_km": rx_x,
+            "rx_y_km": rx_y,
+            "frequency_ghz": freq,
+            "bandwidth_mhz": float(bw),
+            "tx_power_dbm": float(power),
+        })
     return pd.DataFrame(rows)
 
 
