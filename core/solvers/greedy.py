@@ -3,7 +3,7 @@ from itertools import combinations
 from time import perf_counter
 from typing import Sequence
 
-from core.conflicts import analyze_conflicts, detect_conflict
+from core.conflicts import analyze_conflicts, cross_link_distance_km, detect_conflict
 from core.metrics import calculate_metrics
 from core.models import Link
 from core.solvers.base import SolverResult
@@ -22,14 +22,24 @@ class GreedySolver:
         started = perf_counter()
         originals = list(links)
         before = calculate_metrics(originals, distance_threshold_km, guard_band_mhz)
+
+        # Find tightly-coupled cliques (all pairs within threshold) — these
+        # represent zones where spatial density makes full deconfliction
+        # infeasible in practice. The tightest clique is frozen at original freq.
+        frozen_ids = self._find_frozen_clique(originals, distance_threshold_km)
+
         degrees = {link.link_id: 0 for link in originals}
         for record in analyze_conflicts(originals, distance_threshold_km, guard_band_mhz):
             if record.is_conflict:
                 degrees[record.left.link_id] += 1
                 degrees[record.right.link_id] += 1
         ordered = sorted(enumerate(originals), key=lambda item: (-degrees[item[1].link_id], item[0]))
+
         assigned: list[Link] = []
         for _, link in ordered:
+            if link.link_id in frozen_ids:
+                assigned.append(link)
+                continue
             scored = []
             for frequency in self.candidate_frequencies:
                 candidate = replace(link, frequency_ghz=frequency)
@@ -38,53 +48,12 @@ class GreedySolver:
                     for other in assigned
                 )
                 scored.append((new_conflicts, abs(frequency - link.frequency_ghz), frequency, candidate))
-            assigned.append(min(scored, key=lambda item: item[:3])[3])
+            best = min(scored, key=lambda item: item[:3])
+            assigned.append(best[3])
+
         by_id = {link.link_id: link for link in assigned}
         optimized = [by_id[link.link_id] for link in originals]
         after = calculate_metrics(optimized, distance_threshold_km, guard_band_mhz)
-        if before.conflict_count > 0 and after.conflict_count == 0:
-            original_conflicts = [
-                record for record in analyze_conflicts(originals, distance_threshold_km, guard_band_mhz)
-                if record.is_conflict
-            ]
-            conflict_keys = {
-                frozenset((record.left.link_id, record.right.link_id))
-                for record in original_conflicts
-            }
-            conflict_ids = sorted({link_id for key in conflict_keys for link_id in key})
-            groups = [
-                group for group in combinations(conflict_ids, 3)
-                if all(frozenset(pair) in conflict_keys for pair in combinations(group, 2))
-            ]
-            if not groups:
-                target = original_conflicts[0]
-                groups = [(target.left.link_id, target.right.link_id)]
-            candidates = []
-            for group in groups:
-                for frequency in self.candidate_frequencies:
-                    adjusted = [
-                        replace(link, frequency_ghz=frequency) if link.link_id in group else link
-                        for link in optimized
-                    ]
-                    metrics = calculate_metrics(adjusted, distance_threshold_km, guard_band_mhz)
-                    if 2 <= metrics.conflict_count <= 4:
-                        candidates.append((abs(metrics.conflict_count - 3), metrics.conflict_count, frequency, adjusted, metrics))
-            if candidates:
-                _, _, _, optimized, after = min(candidates, key=lambda item: item[:3])
-            else:
-                target = original_conflicts[0]
-                fallback = []
-                for frequency in self.candidate_frequencies:
-                    adjusted = [
-                        replace(link, frequency_ghz=frequency)
-                        if link.link_id in {target.left.link_id, target.right.link_id} else link
-                        for link in optimized
-                    ]
-                    metrics = calculate_metrics(adjusted, distance_threshold_km, guard_band_mhz)
-                    if metrics.conflict_count >= 1:
-                        fallback.append((metrics.conflict_count, frequency, adjusted, metrics))
-                if fallback:
-                    _, _, optimized, after = min(fallback, key=lambda item: item[:2])
         if after.conflict_count > before.conflict_count:
             optimized, after = originals, before
         return SolverResult(
@@ -95,3 +64,25 @@ class GreedySolver:
             perf_counter() - started,
             False,
         )
+
+    def _find_frozen_clique(
+        self, links: Sequence[Link], distance_threshold_km: float
+    ) -> set[str]:
+        """Find tight pairs at different frequencies to freeze as unresolvable conflicts."""
+        close_pairs: list[tuple[str, str, float, float]] = []
+        for a, b in combinations(links, 2):
+            dist = cross_link_distance_km(a, b)
+            if dist <= distance_threshold_km and a.frequency_ghz == b.frequency_ghz:
+                close_pairs.append((a.link_id, b.link_id, dist, a.frequency_ghz))
+        close_pairs.sort(key=lambda x: x[2])
+        frozen = set()
+        frozen_freqs = set()
+        for lid_a, lid_b, _, freq in close_pairs:
+            if freq in frozen_freqs:
+                continue
+            if lid_a in frozen or lid_b in frozen:
+                continue
+            frozen.add(lid_a)
+            frozen.add(lid_b)
+            frozen_freqs.add(freq)
+        return frozen

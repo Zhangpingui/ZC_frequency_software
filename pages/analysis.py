@@ -61,14 +61,15 @@ def render() -> None:
                 result = get_solver(algorithm).solve(st.session_state.links, threshold, guard)
                 st.session_state.solver_result = result
                 st.session_state.optimized_links = result.links
-                st.session_state.analysis_records = analyze_conflicts(st.session_state.links, threshold, guard)
-                st.success(f"{algorithm} 完成 · {result.elapsed_seconds:.3f}s" + (" · 演示模式" if result.is_demo else ""))
+                st.session_state.analysis_records = analyze_conflicts(result.links, threshold, guard)
+                st.rerun()
             result_links = st.session_state.optimized_links or st.session_state.links
             st.download_button("下载当前结果 CSV", data=links_to_csv_bytes(result_links), file_name="频谱指配结果.csv",
                                mime="text/csv", use_container_width=True)
     with left:
+        default_index = 1 if st.session_state.optimized_links else 0
         view = st.radio("方案视图", ["优化前", "优化后"], horizontal=True,
-                        disabled=not bool(st.session_state.optimized_links), key="analysis_view")
+                        index=default_index, disabled=not bool(st.session_state.optimized_links))
         shown_links = st.session_state.optimized_links if view == "优化后" and st.session_state.optimized_links else st.session_state.links
         records = analyze_conflicts(shown_links, threshold, guard)
         _metric_cards(shown_links, threshold, guard)
