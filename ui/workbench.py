@@ -4,7 +4,14 @@ from time import sleep
 import plotly.graph_objects as go
 import streamlit as st
 
-from core.demand_workbook import DEMO_ALGORITHMS, create_demo_optimization, example_demand_dataset, export_optimized_workbook, parse_demand_upload
+from core.demand_workbook import (
+    create_demo_optimization,
+    example_demand_dataset,
+    example_protection_rules,
+    export_optimized_workbook,
+    parse_demand_upload,
+)
+from core.protection_rules import parse_protection_upload
 from ui.shell import render_header
 
 
@@ -21,33 +28,55 @@ def render_workbench() -> None:
 
 def _render_left() -> None:
     with st.expander("参数配置", expanded=False):
-        st.number_input("频道占用率（%）", 0.0, 100.0, 38.0, 0.1)
-        st.number_input("通信链路数量（条）", 1, 100000, 15)
-        st.number_input("用频设备数量（台）", 2, 200000, 30)
-        st.number_input("原始干扰数量（对）", 0, 1000000, 10)
-        st.number_input("优化后剩余干扰（对）", 0, 1000000, 3)
+        st.text_input("可用频谱范围", "1–9 GHz")
+        st.number_input("频率判定容差（MHz）", 0.001, 1000.0, 1.0, 0.1)
+        st.checkbox("考虑同频干扰", value=True)
+        st.checkbox("考虑邻频干扰", value=True)
+        st.checkbox("考虑三阶互调", value=True)
     st.markdown("<div class='panel-title'>数据接入</div>", unsafe_allow_html=True)
-    uploaded = st.file_uploader("导入用频需求表", type=["xlsx"])
-    if uploaded and st.button("加载导入数据", use_container_width=True):
+    demand_upload = st.file_uploader("导入用频需求数据", type=["xlsx", "xls", "csv"])
+    if demand_upload and demand_upload.name != st.session_state.demand_source_name:
         try:
-            _load(parse_demand_upload(uploaded.getvalue(), uploaded.name), uploaded.name)
-            st.success("已加载用频需求表")
+            _load_demand(
+                parse_demand_upload(demand_upload.getvalue(), demand_upload.name),
+                demand_upload.name,
+            )
+            st.success("已加载用频需求数据")
+        except ValueError as error:
+            st.error(str(error))
+    rule_upload = st.file_uploader(
+        "导入禁用保护/规则数据",
+        type=["docx", "xlsx", "xls", "csv", "json", "txt"],
+    )
+    if rule_upload and rule_upload.name != st.session_state.protection_source_name:
+        try:
+            _load_rules(
+                parse_protection_upload(rule_upload.getvalue(), rule_upload.name),
+                rule_upload.name,
+            )
+            st.success("已加载禁用保护/规则数据")
         except ValueError as error:
             st.error(str(error))
     if st.button("生成模拟数据", use_container_width=True):
-        _load(example_demand_dataset(), "系统模拟数据")
-        st.success("已生成 23 条模拟数据")
-    st.caption(f"当前数据源：{st.session_state.demand_source_name}")
-    st.markdown("<div class='panel-title'>优化算法</div>", unsafe_allow_html=True)
-    algorithm = st.selectbox("算法选择", DEMO_ALGORITHMS, index=1)
-    if algorithm != "贪婪算法":
-        st.caption("演示模式：真实算法可在后期直接接入。")
-    if st.button("启动频率优化", type="primary", use_container_width=True, disabled=st.session_state.demand_dataset is None):
+        _load_demand(example_demand_dataset(), "系统模拟用频需求")
+        _load_rules(example_protection_rules(), "系统模拟禁用保护规则")
+        st.success("已生成用频需求和禁用保护规则")
+    st.caption(f"用频需求：{st.session_state.demand_source_name}")
+    st.caption(f"保护规则：{st.session_state.protection_source_name}")
+    if st.session_state.protection_warnings:
+        st.warning(f"规则中有 {len(st.session_state.protection_warnings)} 条未解析")
+    ready = (
+        st.session_state.demand_dataset is not None
+        and st.session_state.protection_rules is not None
+    )
+    if st.button("启动频率优化", type="primary", use_container_width=True, disabled=not ready):
         progress = st.progress(0, text="正在初始化优化任务…")
-        for value, text in ((35, "正在整理用频需求…"), (70, "正在计算频率建议…"), (100, "正在生成结果文件…")):
+        for value, text in ((35, "正在读取双类数据…"), (70, "正在执行频率指配计算…"), (100, "正在生成结果文件…")):
             sleep(0.9)
             progress.progress(value, text=text)
-        st.session_state.demand_result = create_demo_optimization(st.session_state.demand_dataset, algorithm)
+        st.session_state.demand_result = create_demo_optimization(
+            st.session_state.demand_dataset, st.session_state.protection_rules
+        )
         st.session_state.conflict_page = 1
         st.rerun()
 
@@ -59,7 +88,9 @@ def _render_center() -> None:
     if dataset is None:
         st.markdown("<div class='empty-workspace'>请先导入实际 Excel 或生成模拟数据。</div>", unsafe_allow_html=True)
         return
-    result = st.session_state.demand_result or create_demo_optimization(dataset, "DQN-GNN")
+    result = st.session_state.demand_result or create_demo_optimization(
+        dataset, st.session_state.protection_rules or example_protection_rules()
+    )
     one, two, three = st.columns(3)
     one.metric("用频需求", len(dataset.frame)); two.metric("原始冲突", "10 对"); three.metric("优化后", f"{result.after_conflict_count} 对" if st.session_state.demand_result else "未执行")
     choices = ["优化前"] + (["优化后"] if st.session_state.demand_result else [])
@@ -93,8 +124,16 @@ def _render_right() -> None:
     st.markdown(f"<div class='reduction'>冲突下降率 <b>{result.reduction_pct:g}%</b></div>", unsafe_allow_html=True)
 
 
-def _load(dataset, source_name: str) -> None:
+def _load_demand(dataset, source_name: str) -> None:
     st.session_state.demand_dataset = dataset
     st.session_state.demand_source_name = source_name
+    st.session_state.demand_result = None
+    st.session_state.conflict_page = 1
+
+
+def _load_rules(rules, source_name: str) -> None:
+    st.session_state.protection_rules = rules
+    st.session_state.protection_source_name = source_name
+    st.session_state.protection_warnings = rules.warnings
     st.session_state.demand_result = None
     st.session_state.conflict_page = 1

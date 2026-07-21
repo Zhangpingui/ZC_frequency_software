@@ -9,14 +9,17 @@ def test_app_renders_the_single_workbench_without_page_routing():
     assert "from pages import" not in source
 
 
-def test_workbench_contains_data_algorithm_result_and_comparison_controls():
+def test_workbench_contains_dual_data_inputs_result_and_comparison_controls():
     source = Path("ui/workbench.py").read_text(encoding="utf-8")
 
     for label in (
-        "导入用频需求表",
+        "导入用频需求数据",
+        "导入禁用保护/规则数据",
         "生成模拟数据",
         "启动频率优化",
         "下载结果 Excel",
         "优化前后冲突对比",
     ):
         assert label in source
+    assert "DEMO_ALGORITHMS" not in source
+    assert "算法选择" not in source

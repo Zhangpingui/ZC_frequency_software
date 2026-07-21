@@ -7,8 +7,10 @@ DEFAULTS = {
     "scenario": None,
     "demand_dataset": None,
     "demand_source_name": "未导入",
+    "protection_rules": None,
+    "protection_source_name": "未导入",
+    "protection_warnings": (),
     "demand_result": None,
-    "selected_algorithm": "DQN-GNN",
     "conflict_page": 1,
 }
 
