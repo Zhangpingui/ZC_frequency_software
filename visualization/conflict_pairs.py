@@ -41,11 +41,11 @@ def build_conflict_pair_figure(records, page=1, page_size=20, only_conflicts=Fal
     page = min(max(1, int(page)), total_pages)
     visible = records[(page - 1) * page_size:page * page_size]
 
+    spacing = 1.5
     figure = go.Figure()
     if not visible:
         figure.add_annotation(text="暂无数据", x=0.5, y=0.5, xref="paper", yref="paper", showarrow=False)
     else:
-        spacing = 1.5
         for row, record in enumerate(visible):
             y_position = (len(visible) - row) * spacing
             for x_position, link, side in ((0, record.left, "链路一"), (1, record.right, "链路二")):

@@ -11,10 +11,10 @@ def test_app_configures_streamlit_before_other_calls():
     assert first.func.attr == "set_page_config"
 
 
-def test_all_page_renderers_are_importable():
-    from pages import analysis, parameters, topology
+def test_single_workbench_renderer_is_importable():
+    from ui.workbench import render_workbench
 
-    assert all(callable(module.render) for module in (analysis, parameters, topology))
+    assert callable(render_workbench)
 
 
 def test_streamlit_builtin_page_navigation_is_disabled():
@@ -33,6 +33,7 @@ def test_analysis_toast_uses_valid_emoji():
     assert 'icon="✓"' not in source
 
 
-def test_sidebar_renders_after_active_page_updates_state():
+def test_app_uses_the_single_workbench_without_sidebar_routing():
     source = Path("app.py").read_text(encoding="utf-8")
-    assert source.index("routes.get") < source.index("render_sidebar()")
+    assert "render_workbench()" in source
+    assert "render_sidebar" not in source
