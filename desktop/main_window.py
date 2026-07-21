@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QComboBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QMainWindow, QMessageBox, QPushButton, QProgressBar, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QLabel, QMainWindow, QMessageBox, QPushButton, QProgressBar, QScrollArea, QSpinBox, QVBoxLayout, QWidget
 
 from core.demand_workbook import DEMO_ALGORITHMS, example_demand_dataset, export_optimized_workbook, parse_demand_upload
 from desktop.state import DesktopState
@@ -33,7 +33,14 @@ class MainWindow(QMainWindow):
         self._build_left(); self._build_center(); self._build_right(); self.setCentralWidget(central); self._refresh()
 
     def _build_left(self) -> None:
-        self.left_layout.addWidget(QLabel("参数配置（演示）")); self.left_layout.addWidget(QLabel("频道占用率 38%\n通信链路数量 15 条\n优化后剩余干扰 3 对", objectName="muted"))
+        self.left_layout.addWidget(QLabel("参数配置"))
+        parameters, parameter_layout = _panel()
+        form = QFormLayout(); parameter_layout.addLayout(form)
+        occupancy = QDoubleSpinBox(); occupancy.setRange(0, 100); occupancy.setValue(38); occupancy.setSuffix(" %")
+        links = QSpinBox(); links.setRange(1, 100000); links.setValue(15); links.setSuffix(" 条")
+        remaining = QSpinBox(); remaining.setRange(0, 100000); remaining.setValue(3); remaining.setSuffix(" 对")
+        form.addRow("频道占用率（%）", occupancy); form.addRow("通信链路数量（条）", links); form.addRow("优化后剩余干扰（对）", remaining)
+        self.left_layout.addWidget(parameters)
         self.left_layout.addWidget(QLabel("数据接入")); upload = QPushButton("导入用频需求表"); upload.clicked.connect(self._import); self.left_layout.addWidget(upload)
         mock = QPushButton("生成模拟数据"); mock.clicked.connect(self._mock); self.left_layout.addWidget(mock)
         self.source = QLabel("当前数据源：未导入", objectName="muted"); self.left_layout.addWidget(self.source)
@@ -48,6 +55,7 @@ class MainWindow(QMainWindow):
 
     def _build_right(self) -> None:
         self.right_layout.addWidget(QLabel("频率指配结果")); self.file_state = QLabel("执行优化后将生成带“建议”列的 Excel 结果文件。", objectName="muted"); self.file_state.setWordWrap(True); self.right_layout.addWidget(self.file_state)
+        self.result_metrics = QLabel("调整建议：—\n保持原频率：—", objectName="metric"); self.right_layout.addWidget(self.result_metrics)
         self.download = QPushButton("下载结果 Excel", objectName="primary"); self.download.clicked.connect(self._save); self.right_layout.addWidget(self.download)
         self.compare = QLabel("优化前后冲突对比\n优化前：10 对\n优化后：—\n冲突下降率：—", objectName="metric"); self.right_layout.addWidget(self.compare); self.right_layout.addStretch()
 
@@ -76,7 +84,7 @@ class MainWindow(QMainWindow):
     def _refresh(self) -> None:
         self.source.setText(f"当前数据源：{self.state.source_name}"); ready = self.state.dataset is not None; self.start.setEnabled(ready); self.download.setEnabled(self.state.result is not None); self.view.setEnabled(ready); self._refresh_pairs()
         if self.state.result:
-            result = self.state.result; self.file_state.setText("用频需求表_优化结果.xlsx\n已保留原始字段，仅填充“建议”列"); self.compare.setText(f"优化前后冲突对比\n优化前：10 对\n优化后：{result.after_conflict_count} 对\n冲突下降率：{result.reduction_pct:g}%")
+            result = self.state.result; adjusted = sum(value.startswith("建议调整为 ") for value in result.suggestions.values()); self.file_state.setText("用频需求表_优化结果.xlsx\n已保留原始字段，仅填充“建议”列"); self.result_metrics.setText(f"调整建议：{adjusted} 条\n保持原频率：{len(result.suggestions) - adjusted} 条"); self.compare.setText(f"优化前后冲突对比\n优化前：10 对\n优化后：{result.after_conflict_count} 对\n冲突下降率：{result.reduction_pct:g}%")
 
     def _refresh_pairs(self) -> None:
         while self.pairs.count():

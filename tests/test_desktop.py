@@ -16,3 +16,10 @@ def test_desktop_entrypoint_is_import_safe():
     import desktop_app
 
     assert callable(desktop_app.main)
+
+
+def test_desktop_workbench_contains_the_web_result_and_comparison_structure():
+    source = __import__("pathlib").Path("desktop/main_window.py").read_text(encoding="utf-8")
+
+    for label in ("调整建议", "保持原频率", "优化前后冲突对比", "频道占用率（%）"):
+        assert label in source
