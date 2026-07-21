@@ -1,9 +1,10 @@
 from pathlib import Path
 
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QLabel, QMainWindow, QMessageBox, QPushButton, QProgressBar, QScrollArea, QSpinBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton, QProgressBar, QScrollArea, QVBoxLayout, QWidget
 
-from core.demand_workbook import DEMO_ALGORITHMS, example_demand_dataset, export_optimized_workbook, parse_demand_upload
+from core.demand_workbook import create_demo_optimization, example_demand_dataset, example_protection_rules, export_optimized_workbook, parse_demand_upload
+from core.protection_rules import parse_protection_upload
 from desktop.state import DesktopState
 from desktop.theme import APP_STYLESHEET
 
@@ -36,15 +37,18 @@ class MainWindow(QMainWindow):
         self.left_layout.addWidget(QLabel("参数配置"))
         parameters, parameter_layout = _panel()
         form = QFormLayout(); parameter_layout.addLayout(form)
-        occupancy = QDoubleSpinBox(); occupancy.setRange(0, 100); occupancy.setValue(38); occupancy.setSuffix(" %")
-        links = QSpinBox(); links.setRange(1, 100000); links.setValue(15); links.setSuffix(" 条")
-        remaining = QSpinBox(); remaining.setRange(0, 100000); remaining.setValue(3); remaining.setSuffix(" 对")
-        form.addRow("频道占用率（%）", occupancy); form.addRow("通信链路数量（条）", links); form.addRow("优化后剩余干扰（对）", remaining)
+        spectrum = QLineEdit("1–9 GHz")
+        tolerance = QDoubleSpinBox(); tolerance.setRange(0.001, 1000); tolerance.setValue(1); tolerance.setSuffix(" MHz")
+        form.addRow("可用频谱范围", spectrum); form.addRow("频率判定容差", tolerance)
+        parameter_layout.addWidget(QCheckBox("考虑同频干扰", checked=True))
+        parameter_layout.addWidget(QCheckBox("考虑邻频干扰", checked=True))
+        parameter_layout.addWidget(QCheckBox("考虑三阶互调", checked=True))
         self.left_layout.addWidget(parameters)
-        self.left_layout.addWidget(QLabel("数据接入")); upload = QPushButton("导入用频需求表"); upload.clicked.connect(self._import); self.left_layout.addWidget(upload)
+        self.left_layout.addWidget(QLabel("数据接入")); upload = QPushButton("导入用频需求数据"); upload.clicked.connect(self._import_demand); self.left_layout.addWidget(upload)
+        rule_upload = QPushButton("导入禁用保护/规则数据"); rule_upload.clicked.connect(self._import_rules); self.left_layout.addWidget(rule_upload)
         mock = QPushButton("生成模拟数据"); mock.clicked.connect(self._mock); self.left_layout.addWidget(mock)
-        self.source = QLabel("当前数据源：未导入", objectName="muted"); self.left_layout.addWidget(self.source)
-        self.left_layout.addWidget(QLabel("优化算法")); self.algorithm = QComboBox(); self.algorithm.addItems(DEMO_ALGORITHMS); self.algorithm.setCurrentText("DQN-GNN"); self.left_layout.addWidget(self.algorithm)
+        self.source = QLabel("用频需求：未导入", objectName="muted"); self.left_layout.addWidget(self.source)
+        self.rule_source = QLabel("保护规则：未导入", objectName="muted"); self.left_layout.addWidget(self.rule_source)
         self.start = QPushButton("启动频率优化", objectName="primary"); self.start.clicked.connect(self._start); self.left_layout.addWidget(self.start)
         self.progress = QProgressBar(); self.progress.setVisible(False); self.left_layout.addWidget(self.progress); self.left_layout.addStretch()
 
@@ -59,22 +63,28 @@ class MainWindow(QMainWindow):
         self.download = QPushButton("下载结果 Excel", objectName="primary"); self.download.clicked.connect(self._save); self.right_layout.addWidget(self.download)
         self.compare = QLabel("优化前后冲突对比\n优化前：10 对\n优化后：—\n冲突下降率：—", objectName="metric"); self.right_layout.addWidget(self.compare); self.right_layout.addStretch()
 
-    def _import(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "导入用频需求表", "", "Excel (*.xlsx)")
+    def _import_demand(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, "导入用频需求数据", "", "用频需求数据 (*.xlsx *.xls *.csv)")
         if not path: return
         try: self.state.load_dataset(parse_demand_upload(Path(path).read_bytes(), Path(path).name), Path(path).name); self._refresh()
         except (OSError, ValueError) as error: QMessageBox.warning(self, "导入失败", str(error))
 
+    def _import_rules(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, "导入禁用保护/规则数据", "", "规则数据 (*.docx *.xlsx *.xls *.csv *.json *.txt)")
+        if not path: return
+        try: self.state.load_protection_rules(parse_protection_upload(Path(path).read_bytes(), Path(path).name), Path(path).name); self._refresh()
+        except (OSError, ValueError) as error: QMessageBox.warning(self, "导入失败", str(error))
+
     def _mock(self) -> None:
-        self.state.load_dataset(example_demand_dataset(), "系统模拟数据"); self._refresh()
+        self.state.load_dataset(example_demand_dataset(), "系统模拟用频需求"); self.state.load_protection_rules(example_protection_rules(), "系统模拟禁用保护规则"); self._refresh()
 
     def _start(self) -> None:
-        if self.state.dataset is None: return
+        if not self.state.is_ready: return
         self.start.setEnabled(False); self.progress.setVisible(True); self.progress.setValue(10)
         QTimer.singleShot(1000, lambda: self.progress.setValue(55)); QTimer.singleShot(2000, lambda: self.progress.setValue(85)); QTimer.singleShot(3000, self._finish)
 
     def _finish(self) -> None:
-        self.state.optimize(self.algorithm.currentText()); self.progress.setValue(100); self.progress.setVisible(False); self.start.setEnabled(True); self.view.setCurrentText("优化后"); self._refresh()
+        self.state.optimize(); self.progress.setValue(100); self.progress.setVisible(False); self.start.setEnabled(True); self.view.setCurrentText("优化后"); self._refresh()
 
     def _save(self) -> None:
         if self.state.result is None: return
@@ -82,7 +92,7 @@ class MainWindow(QMainWindow):
         if path: Path(path).write_bytes(export_optimized_workbook(self.state.result))
 
     def _refresh(self) -> None:
-        self.source.setText(f"当前数据源：{self.state.source_name}"); ready = self.state.dataset is not None; self.start.setEnabled(ready); self.download.setEnabled(self.state.result is not None); self.view.setEnabled(ready); self._refresh_pairs()
+        self.source.setText(f"用频需求：{self.state.source_name}"); self.rule_source.setText(f"保护规则：{self.state.protection_source_name}"); ready = self.state.is_ready; self.start.setEnabled(ready); self.download.setEnabled(self.state.result is not None); self.view.setEnabled(self.state.dataset is not None); self._refresh_pairs()
         if self.state.result:
             result = self.state.result; adjusted = sum(value.startswith("建议调整为 ") for value in result.suggestions.values()); self.file_state.setText("用频需求表_优化结果.xlsx\n已保留原始字段，仅填充“建议”列"); self.result_metrics.setText(f"调整建议：{adjusted} 条\n保持原频率：{len(result.suggestions) - adjusted} 条"); self.compare.setText(f"优化前后冲突对比\n优化前：10 对\n优化后：{result.after_conflict_count} 对\n冲突下降率：{result.reduction_pct:g}%")
 
@@ -90,8 +100,7 @@ class MainWindow(QMainWindow):
         while self.pairs.count():
             item = self.pairs.takeAt(0); widget = item.widget(); widget and widget.deleteLater()
         if self.state.dataset is None: self.metrics.setText("请导入 Excel 或生成模拟数据"); return
-        preview = self.state.result or self.state.optimize("DQN-GNN")
-        if self.state.result is None: self.state.result = None
+        preview = self.state.result or create_demo_optimization(self.state.dataset, self.state.protection_rules or example_protection_rules())
         pairs = preview.after_pairs if self.view.currentText() == "优化后" and self.state.result else preview.before_pairs
         self.metrics.setText(f"用频需求 {len(self.state.dataset.frame)} 条 · 原始冲突 10 对 · 优化后 {self.state.result.after_conflict_count if self.state.result else '未执行'}")
         for pair in pairs:
