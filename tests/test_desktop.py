@@ -23,3 +23,11 @@ def test_desktop_workbench_contains_the_web_result_and_comparison_structure():
 
     for label in ("调整建议", "保持原频率", "优化前后冲突对比", "频道占用率（%）"):
         assert label in source
+
+
+def test_desktop_theme_colors_the_scroll_area_and_input_controls():
+    source = __import__("pathlib").Path("desktop/theme.py").read_text(encoding="utf-8")
+
+    for selector in ("QScrollArea", "QScrollArea > QWidget > QWidget", "QAbstractSpinBox"):
+        assert selector in source
+    assert "#06182f" in source

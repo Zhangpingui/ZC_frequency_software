@@ -51,7 +51,7 @@ class MainWindow(QMainWindow):
     def _build_center(self) -> None:
         self.center_layout.addWidget(QLabel("用频冲突组合")); self.metrics = QLabel(objectName="metric"); self.center_layout.addWidget(self.metrics)
         self.view = QComboBox(); self.view.addItems(["优化前", "优化后"]); self.view.currentTextChanged.connect(self._refresh_pairs); self.center_layout.addWidget(self.view)
-        self.pairs = QVBoxLayout(); holder = QWidget(); holder.setLayout(self.pairs); scroll = QScrollArea(); scroll.setWidgetResizable(True); scroll.setWidget(holder); self.center_layout.addWidget(scroll, 1)
+        self.pairs = QVBoxLayout(); holder = QWidget(); holder.setObjectName("pairViewport"); holder.setLayout(self.pairs); scroll = QScrollArea(); scroll.setWidgetResizable(True); scroll.setWidget(holder); self.center_layout.addWidget(scroll, 1)
 
     def _build_right(self) -> None:
         self.right_layout.addWidget(QLabel("频率指配结果")); self.file_state = QLabel("执行优化后将生成带“建议”列的 Excel 结果文件。", objectName="muted"); self.file_state.setWordWrap(True); self.right_layout.addWidget(self.file_state)
