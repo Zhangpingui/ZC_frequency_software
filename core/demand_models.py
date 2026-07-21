@@ -54,6 +54,7 @@ class DemandOptimizationResult:
     suggestions: Mapping[int, str]
     before_conflict_count: int
     after_conflict_count: int
+    protection_rule_count: int = 0
 
     @property
     def source_frame(self) -> pd.DataFrame:

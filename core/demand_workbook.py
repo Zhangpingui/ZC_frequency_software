@@ -6,7 +6,13 @@ import re
 import pandas as pd
 from openpyxl import Workbook, load_workbook
 
-from core.demand_models import DemandConflictPair, DemandDataset, DemandOptimizationResult
+from core.demand_models import (
+    DemandConflictPair,
+    DemandDataset,
+    DemandOptimizationResult,
+    ProtectionRule,
+    ProtectionRuleSet,
+)
 
 
 DEMAND_COLUMNS = (
@@ -23,7 +29,6 @@ DEMAND_COLUMNS = (
     "发射功率",
     "建议",
 )
-DEMO_ALGORITHMS = ("贪婪算法", "DQN-GNN", "遗传算法", "禁忌搜索")
 
 
 def validate_demand_frame(frame: pd.DataFrame) -> pd.DataFrame:
@@ -36,9 +41,16 @@ def validate_demand_frame(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def parse_demand_upload(data: bytes, filename: str) -> DemandDataset:
-    if Path(filename).suffix.lower() != ".xlsx":
-        raise ValueError("当前仅支持 Excel（.xlsx）用频需求表")
-    workbook = load_workbook(BytesIO(data), read_only=True, data_only=False)
+    suffix = Path(filename).suffix.lower()
+    if suffix not in {".xlsx", ".xls", ".csv"}:
+        raise ValueError("用频需求数据仅支持 Excel（.xlsx/.xls）或 CSV")
+    if suffix == ".csv":
+        frame = pd.read_csv(BytesIO(data))
+        return DemandDataset(validate_demand_frame(frame), None, Path(filename).stem, 1)
+    workbook = load_workbook(BytesIO(data), read_only=True, data_only=False) if suffix == ".xlsx" else None
+    if workbook is None:
+        frame = pd.read_excel(BytesIO(data))
+        return DemandDataset(validate_demand_frame(frame), None, Path(filename).stem, 1)
     sheet = workbook.active
     header_row = _find_header_row(sheet)
     frame = pd.read_excel(BytesIO(data), sheet_name=sheet.title, header=header_row - 1)
@@ -80,11 +92,20 @@ def example_demand_dataset() -> DemandDataset:
     return DemandDataset(example_demand_dataframe(), None, "用频需求表", 1)
 
 
+def example_protection_rules() -> ProtectionRuleSet:
+    return ProtectionRuleSet(
+        (
+            ProtectionRule("121.5MHz", 121.5, 121.5, "航空遇险", "禁止占用"),
+            ProtectionRule("406-406.1MHz", 406, 406.1, "国际遇险", "绝对禁用"),
+            ProtectionRule("2523-2654MHz", 2523, 2654, "航空通信", "禁止占用"),
+        ),
+        "系统模拟禁用保护规则",
+    )
+
+
 def create_demo_optimization(
-    dataset: DemandDataset, algorithm_name: str
+    dataset: DemandDataset, protection_rules: ProtectionRuleSet
 ) -> DemandOptimizationResult:
-    if algorithm_name not in DEMO_ALGORITHMS:
-        raise ValueError(f"不支持的算法：{algorithm_name}")
     frame = validate_demand_frame(dataset.frame)
     pairs = _build_pairs(frame)
     before_pairs = tuple(
@@ -104,20 +125,23 @@ def create_demo_optimization(
         for index, pair in enumerate(pairs)
     )
     suggestions = {
-        index: _suggestion_for_row(row, should_adjust=index < 7)
+        index: _suggestion_for_row(
+            row, should_adjust=index < 7, protection_rules=protection_rules
+        )
         for index, (_, row) in enumerate(frame.iterrows())
     }
     normalized_dataset = DemandDataset(
         frame, dataset.source_bytes, dataset.sheet_name, dataset.header_row
     )
     return DemandOptimizationResult(
-        algorithm_name,
+        "频率指配计算",
         normalized_dataset,
         before_pairs,
         after_pairs,
         suggestions,
         10,
         3,
+        protection_rules.valid_count,
     )
 
 
@@ -180,7 +204,9 @@ def _display_name(row: pd.Series) -> str:
     return f"{row['序号']:02d} {row['型号名称']}"
 
 
-def _suggestion_for_row(row: pd.Series, should_adjust: bool) -> str:
+def _suggestion_for_row(
+    row: pd.Series, should_adjust: bool, protection_rules: ProtectionRuleSet
+) -> str:
     if not should_adjust:
         return "保持原工作频率"
     frequency = str(row["工作频率"])
@@ -192,4 +218,14 @@ def _suggestion_for_row(row: pd.Series, should_adjust: bool) -> str:
     else:
         lower, upper = (5.15, 5.35) if unit == "GHz" else (240, 250)
     offset = 0.05 if unit == "GHz" else 1.0
-    return f"建议调整为 {lower + offset:g}–{max(lower + offset, upper - offset):g} {unit}"
+    suggestion_lower = lower + offset
+    suggestion_upper = max(suggestion_lower, upper - offset)
+    lower_mhz = suggestion_lower * 1000 if unit == "GHz" else suggestion_lower
+    upper_mhz = suggestion_upper * 1000 if unit == "GHz" else suggestion_upper
+    blocked = any(
+        lower_mhz <= rule.upper_mhz and upper_mhz >= rule.lower_mhz
+        for rule in protection_rules.rules
+    )
+    if blocked:
+        return "建议避开禁用保护频率后重新指配"
+    return f"建议调整为 {suggestion_lower:g}–{suggestion_upper:g} {unit}"

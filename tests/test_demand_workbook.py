@@ -9,13 +9,33 @@ from core.demand_workbook import (
     create_demo_optimization,
     example_demand_dataset,
     example_demand_dataframe,
+    example_protection_rules,
     export_optimized_workbook,
     parse_demand_upload,
 )
 
 
+def test_parse_demand_upload_accepts_csv():
+    dataset = parse_demand_upload(
+        example_demand_dataframe().to_csv(index=False).encode(), "需求.csv"
+    )
+
+    assert len(dataset.frame) == 23
+
+
+def test_optimization_records_protection_rule_count():
+    result = create_demo_optimization(
+        example_demand_dataset(), example_protection_rules()
+    )
+
+    assert result.protection_rule_count > 0
+    assert result.algorithm_name == "频率指配计算"
+
+
 def test_demo_optimization_has_fixed_before_after_counts():
-    result = create_demo_optimization(example_demand_dataset(), "DQN-GNN")
+    result = create_demo_optimization(
+        example_demand_dataset(), example_protection_rules()
+    )
 
     assert result.before_conflict_count == 10
     assert result.after_conflict_count == 3
@@ -41,7 +61,7 @@ def test_export_preserves_uploaded_title_and_populates_suggestions(tmp_path):
         example_demand_dataframe().to_excel(writer, index=False, startrow=1)
 
     dataset = parse_demand_upload(source.read_bytes(), source.name)
-    result = create_demo_optimization(dataset, "遗传算法")
+    result = create_demo_optimization(dataset, example_protection_rules())
     workbook = load_workbook(BytesIO(export_optimized_workbook(result)), data_only=True)
     sheet = workbook.active
 
