@@ -1,25 +1,16 @@
 import streamlit as st
 
-st.set_page_config(
-    page_title="战场频谱智能指配演示系统",
-    page_icon="📡",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+st.set_page_config(page_title="战场频谱智能指配系统", page_icon="📡", layout="wide", initial_sidebar_state="collapsed")
 
-from pages import analysis, parameters, topology
-from ui import initialize_state, render_bottom_navigation, render_header, render_sidebar
+from ui import initialize_state
 from ui.shell import load_theme
+from ui.workbench import render_workbench
 
 
 def main() -> None:
     initialize_state()
     load_theme()
-    render_header()
-    routes = {"parameters": parameters.render, "topology": topology.render, "analysis": analysis.render}
-    routes.get(st.session_state.active_page, parameters.render)()
-    render_sidebar()
-    render_bottom_navigation()
+    render_workbench()
 
 
 if __name__ == "__main__":

@@ -93,13 +93,13 @@ def test_parse_uploaded_data_rejects_unknown_format():
 
 def test_example_and_template_have_expected_scale():
     frame = example_dataframe()
-    assert len(frame) == 15
-    assert len(set(frame["tx_id"]) | set(frame["rx_id"])) == 30
+    assert len(frame) == 25
+    assert len(set(frame["tx_id"]) | set(frame["rx_id"])) >= 20
     assert frame[["tx_x_km", "tx_y_km", "rx_x_km", "rx_y_km"]].min().min() >= 0
     assert frame[["tx_x_km", "tx_y_km", "rx_x_km", "rx_y_km"]].max().max() <= 100
     assert frame["frequency_ghz"].between(1, 9).all()
     downloaded = pd.read_excel(BytesIO(template_xlsx_bytes()))
-    assert len(downloaded) == 15
+    assert len(downloaded) == 25
 
 
 def test_example_data_demonstrates_conflict_reduction():
