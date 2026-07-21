@@ -13,6 +13,30 @@ class DemandDataset:
 
 
 @dataclass(frozen=True)
+class ProtectionRule:
+    expression: str
+    lower_mhz: float
+    upper_mhz: float
+    category: str = ""
+    requirement: str = ""
+
+
+@dataclass(frozen=True)
+class ProtectionRuleSet:
+    rules: tuple[ProtectionRule, ...]
+    source_name: str
+    warnings: tuple[str, ...] = ()
+
+    @property
+    def valid_count(self) -> int:
+        return len(self.rules)
+
+    @property
+    def invalid_count(self) -> int:
+        return len(self.warnings)
+
+
+@dataclass(frozen=True)
 class DemandConflictPair:
     left_row: int
     right_row: int
