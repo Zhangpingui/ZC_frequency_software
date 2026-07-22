@@ -34,6 +34,7 @@ def test_desktop_workbench_contains_the_web_result_and_comparison_structure():
         assert label in source
     assert "DEMO_ALGORITHMS" not in source
     assert "算法选择" not in source
+    assert "模拟" not in source
 
 
 def test_desktop_theme_colors_the_scroll_area_and_input_controls():

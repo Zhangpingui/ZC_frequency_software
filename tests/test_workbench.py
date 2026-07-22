@@ -15,7 +15,7 @@ def test_workbench_contains_dual_data_inputs_result_and_comparison_controls():
     for label in (
         "导入用频需求数据",
         "导入禁用保护/规则数据",
-        "生成模拟数据",
+        "加载预置数据",
         "启动频率优化",
         "下载结果 Excel",
         "优化前后冲突对比",
@@ -23,3 +23,4 @@ def test_workbench_contains_dual_data_inputs_result_and_comparison_controls():
         assert label in source
     assert "DEMO_ALGORITHMS" not in source
     assert "算法选择" not in source
+    assert "模拟" not in source

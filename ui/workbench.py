@@ -57,10 +57,10 @@ def _render_left() -> None:
             st.success("已加载禁用保护/规则数据")
         except ValueError as error:
             st.error(str(error))
-    if st.button("生成模拟数据", use_container_width=True):
-        _load_demand(example_demand_dataset(), "系统模拟用频需求")
-        _load_rules(example_protection_rules(), "系统模拟禁用保护规则")
-        st.success("已生成用频需求和禁用保护规则")
+    if st.button("加载预置数据", use_container_width=True):
+        _load_demand(example_demand_dataset(), "预置用频需求")
+        _load_rules(example_protection_rules(), "预置禁用保护规则")
+        st.success("已加载预置用频需求和禁用保护规则")
     st.caption(f"用频需求：{st.session_state.demand_source_name}")
     st.caption(f"保护规则：{st.session_state.protection_source_name}")
     if st.session_state.protection_warnings:
@@ -86,7 +86,7 @@ def _render_center() -> None:
     st.subheader("用频冲突组合", anchor=False)
     dataset = st.session_state.demand_dataset
     if dataset is None:
-        st.markdown("<div class='empty-workspace'>请先导入实际 Excel 或生成模拟数据。</div>", unsafe_allow_html=True)
+        st.markdown("<div class='empty-workspace'>请先导入用频需求数据或加载预置数据。</div>", unsafe_allow_html=True)
         return
     result = st.session_state.demand_result or create_demo_optimization(
         dataset, st.session_state.protection_rules or example_protection_rules()
@@ -107,7 +107,7 @@ def _render_center() -> None:
 
 
 def _render_right() -> None:
-    st.markdown("<div class='section-kicker'>结果输出</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-kicker'>计算结果</div>", unsafe_allow_html=True)
     st.subheader("频率指配结果", anchor=False)
     result = st.session_state.demand_result
     if result is None:

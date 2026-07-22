@@ -26,7 +26,7 @@ class MainWindow(QMainWindow):
         self.resize(1480, 900)
         self.setStyleSheet(APP_STYLESHEET)
         central = QWidget(); root = QVBoxLayout(central)
-        header = QLabel("频谱资源规划 · 冲突分析 · 结果导出\n战场频谱智能指配系统", objectName="title")
+        header = QLabel("频谱资源规划 · 冲突分析\n战场频谱智能指配系统", objectName="title")
         root.addWidget(header)
         columns = QHBoxLayout(); root.addLayout(columns, 1)
         self.left, self.left_layout = _panel(); self.center, self.center_layout = _panel(); self.right, self.right_layout = _panel()
@@ -46,7 +46,7 @@ class MainWindow(QMainWindow):
         self.left_layout.addWidget(parameters)
         self.left_layout.addWidget(QLabel("数据接入")); upload = QPushButton("导入用频需求数据"); upload.clicked.connect(self._import_demand); self.left_layout.addWidget(upload)
         rule_upload = QPushButton("导入禁用保护/规则数据"); rule_upload.clicked.connect(self._import_rules); self.left_layout.addWidget(rule_upload)
-        mock = QPushButton("生成模拟数据"); mock.clicked.connect(self._mock); self.left_layout.addWidget(mock)
+        preset = QPushButton("加载预置数据"); preset.clicked.connect(self._mock); self.left_layout.addWidget(preset)
         self.source = QLabel("用频需求：未导入", objectName="muted"); self.left_layout.addWidget(self.source)
         self.rule_source = QLabel("保护规则：未导入", objectName="muted"); self.left_layout.addWidget(self.rule_source)
         self.start = QPushButton("启动频率优化", objectName="primary"); self.start.clicked.connect(self._start); self.left_layout.addWidget(self.start)
@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
         except (OSError, ValueError) as error: QMessageBox.warning(self, "导入失败", str(error))
 
     def _mock(self) -> None:
-        self.state.load_dataset(example_demand_dataset(), "系统模拟用频需求"); self.state.load_protection_rules(example_protection_rules(), "系统模拟禁用保护规则"); self._refresh()
+        self.state.load_dataset(example_demand_dataset(), "预置用频需求"); self.state.load_protection_rules(example_protection_rules(), "预置禁用保护规则"); self._refresh()
 
     def _start(self) -> None:
         if not self.state.is_ready: return
@@ -99,7 +99,7 @@ class MainWindow(QMainWindow):
     def _refresh_pairs(self) -> None:
         while self.pairs.count():
             item = self.pairs.takeAt(0); widget = item.widget(); widget and widget.deleteLater()
-        if self.state.dataset is None: self.metrics.setText("请导入 Excel 或生成模拟数据"); return
+        if self.state.dataset is None: self.metrics.setText("请导入用频需求数据或加载预置数据"); return
         preview = self.state.result or create_demo_optimization(self.state.dataset, self.state.protection_rules or example_protection_rules())
         pairs = preview.after_pairs if self.view.currentText() == "优化后" and self.state.result else preview.before_pairs
         self.metrics.setText(f"用频需求 {len(self.state.dataset.frame)} 条 · 原始冲突 10 对 · 优化后 {self.state.result.after_conflict_count if self.state.result else '未执行'}")
