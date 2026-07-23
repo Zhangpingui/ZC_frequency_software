@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton, QProgressBar, QScrollArea, QVBoxLayout, QWidget
 
 from core.demand_workbook import create_demo_optimization, example_demand_dataset, example_protection_rules, export_optimized_workbook, parse_demand_upload
@@ -27,6 +27,7 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(APP_STYLESHEET)
         central = QWidget(); root = QVBoxLayout(central)
         header = QLabel("频谱资源规划 · 冲突分析\n战场频谱智能指配系统", objectName="title")
+        header.setAlignment(Qt.AlignCenter)
         root.addWidget(header)
         columns = QHBoxLayout(); root.addLayout(columns, 1)
         self.left, self.left_layout = _panel(); self.center, self.center_layout = _panel(); self.right, self.right_layout = _panel()

@@ -43,3 +43,10 @@ def test_desktop_theme_colors_the_scroll_area_and_input_controls():
     for selector in ("QScrollArea", "QScrollArea > QWidget > QWidget", "QAbstractSpinBox"):
         assert selector in source
     assert "#06182f" in source
+
+
+def test_desktop_header_title_is_centered():
+    source = __import__("pathlib").Path("desktop/main_window.py").read_text(encoding="utf-8")
+
+    assert "Qt.AlignCenter" in source
+    assert "header.setAlignment" in source

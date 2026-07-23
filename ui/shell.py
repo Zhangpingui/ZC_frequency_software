@@ -38,6 +38,6 @@ def load_theme() -> None:
 
 def render_header() -> None:
     st.markdown(
-        """<header class="system-header"><div class="brand-mark">FM</div><div><div class="eyebrow">频谱资源规划 · 冲突分析</div><div class="system-title">战场频谱智能指配系统</div></div><div class="header-spacer"></div><div class="ready-chip"><span></span> 本地运行</div></header>""",
+        """<header class="system-header"><div class="brand-mark">FM</div><div class="header-title-block"><div class="eyebrow">频谱资源规划 · 冲突分析</div><div class="system-title">战场频谱智能指配系统</div></div><div class="header-spacer"></div><div class="ready-chip"><span></span> 本地运行</div></header>""",
         unsafe_allow_html=True,
     )

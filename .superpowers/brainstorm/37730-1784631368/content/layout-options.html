@@ -1,0 +1,97 @@
+<style>
+  .layout-grid { display:grid; gap:18px; margin-top:22px; }
+  .layout-card { border:1px solid #284d78; border-radius:14px; overflow:hidden; background:#071629; cursor:pointer; transition:.2s; }
+  .layout-card:hover { transform:translateY(-2px); border-color:#58a6ff; box-shadow:0 12px 36px rgba(0,76,155,.25); }
+  .layout-card.selected { border-color:#4cc9ff; box-shadow:0 0 0 2px rgba(76,201,255,.28); }
+  .layout-meta { display:flex; align-items:center; gap:12px; padding:14px 16px; background:#0b1d33; border-bottom:1px solid #183756; }
+  .layout-letter { width:30px; height:30px; display:grid; place-items:center; border-radius:7px; background:#153b61; color:#9edcff; font-weight:800; }
+  .layout-title { color:#edf7ff; font-weight:700; font-size:15px; }
+  .layout-desc { color:#8aa5bd; font-size:12px; margin-top:2px; }
+  .recommended { margin-left:auto; background:#0d5165; color:#8eeaff; border:1px solid #177792; border-radius:999px; padding:4px 9px; font-size:11px; }
+  .screen { display:grid; height:270px; background:linear-gradient(135deg,#071d38 0%,#0b2b53 52%,#06172d 100%); color:#d9ecff; }
+  .panel { min-width:0; padding:12px; border-right:1px solid rgba(95,164,224,.25); }
+  .panel:last-child { border-right:0; }
+  .bar { height:8px; border-radius:6px; background:#183c5f; margin-bottom:8px; }
+  .bar.accent { background:linear-gradient(90deg,#1598cf,#42d0df); }
+  .labelx { font-size:10px; color:#72a8d3; letter-spacing:.08em; margin-bottom:7px; }
+  .titlex { font-size:13px; font-weight:700; margin-bottom:10px; color:#f1f8ff; }
+  .field { height:27px; border:1px solid #27527a; background:#0b223b; border-radius:5px; margin-bottom:6px; }
+  .buttonx { height:30px; display:grid; place-items:center; border-radius:5px; background:linear-gradient(90deg,#0874aa,#0da9c1); color:white; font-size:10px; font-weight:700; margin:8px 0; }
+  .metric-row { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-bottom:9px; }
+  .metric { background:rgba(9,31,55,.86); border:1px solid #204b70; border-radius:6px; padding:7px; }
+  .metric b { display:block; color:#fff; font-size:15px; }
+  .metric span { font-size:9px; color:#7ca3c3; }
+  .conflict { display:grid; grid-template-columns:1fr 30px 1fr; align-items:center; gap:6px; padding:7px; background:#0a213a; border:1px solid #204c71; border-radius:7px; margin-bottom:6px; }
+  .node { height:23px; display:grid; place-items:center; border-radius:12px; background:linear-gradient(90deg,#13b7e7,#5564db); font-size:9px; }
+  .line { height:2px; background:#ff5f64; position:relative; }
+  .line:after { content:'!'; position:absolute; right:9px; top:-8px; width:14px; height:14px; border-radius:50%; background:#d73d4a; color:#fff; font-size:9px; display:grid; place-items:center; }
+  .table { border:1px solid #244e73; border-radius:7px; overflow:hidden; font-size:9px; }
+  .tr { display:grid; grid-template-columns:.45fr 1fr 1.15fr 1fr; }
+  .tr > div { padding:7px 6px; border-right:1px solid #1d405f; border-bottom:1px solid #173650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tr > div:last-child { border-right:0; }
+  .th { background:#143a5c; color:#bfe6ff; font-weight:700; }
+  .suggest { color:#69e0bd; }
+  .scrollhint { height:50px; background:linear-gradient(180deg,rgba(7,22,41,0),#071629); margin-top:-50px; position:relative; }
+</style>
+
+<h2>单页三栏布局，哪一种更适合作为最终软件？</h2>
+<p class="subtitle">三种方案都同步用于网页和桌面 App；区别主要是冲突画布与 Excel 结果表的空间分配。</p>
+
+<div class="layout-grid">
+  <div class="layout-card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="layout-meta">
+      <div class="layout-letter">A</div>
+      <div><div class="layout-title">均衡型 · 24% / 43% / 33%</div><div class="layout-desc">冲突对比与结果表同时保持可读，适合 1366×768 以上工程终端。</div></div>
+      <div class="recommended">推荐</div>
+    </div>
+    <div class="screen" style="grid-template-columns:24fr 43fr 33fr">
+      <div class="panel">
+        <div class="labelx">任务控制</div><div class="titlex">参数与算法</div>
+        <div class="field"></div><div class="field"></div><div class="bar"></div>
+        <div class="titlex" style="margin-top:12px">数据接入</div><div class="field"></div>
+        <div class="titlex" style="margin-top:12px">优化算法</div><div class="field"></div><div class="buttonx">启动频率优化</div>
+      </div>
+      <div class="panel">
+        <div class="labelx">冲突态势</div><div class="titlex">原始冲突 · 10 对</div>
+        <div class="metric-row"><div class="metric"><b>23</b><span>用频需求</span></div><div class="metric"><b>10</b><span>原始冲突</span></div><div class="metric"><b>—</b><span>优化结果</span></div></div>
+        <div class="conflict"><div class="node">需求 02</div><div class="line"></div><div class="node">需求 05</div></div>
+        <div class="conflict"><div class="node" style="background:#7268df">需求 03</div><div class="line"></div><div class="node" style="background:#7268df">需求 06</div></div>
+        <div class="conflict"><div class="node" style="background:#e0a12e">需求 14</div><div class="line"></div><div class="node" style="background:#e0a12e">需求 15</div></div>
+      </div>
+      <div class="panel">
+        <div class="labelx">指配结果</div><div class="titlex">用频需求表 · 23 条</div>
+        <div class="table">
+          <div class="tr th"><div>序号</div><div>型号名称</div><div>工作频率</div><div>建议</div></div>
+          <div class="tr"><div>1</div><div>短波通信系统</div><div>2.5–3.3MHz</div><div>待计算</div></div>
+          <div class="tr"><div>2</div><div>机载雷达</div><div>5.2–6GHz</div><div class="suggest">建议调整为 5.15–5.35GHz</div></div>
+          <div class="tr"><div>3</div><div>B类端机</div><div>960–1000MHz</div><div class="suggest">保持原工作频率</div></div>
+          <div class="tr"><div>4</div><div>短波通信系统</div><div>2–10MHz</div><div>待计算</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout-card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="layout-meta">
+      <div class="layout-letter">B</div>
+      <div><div class="layout-title">固定侧栏型 · 320px / 自适应 / 460px</div><div class="layout-desc">桌面 App 操作稳定，窗口变宽时主要扩展中间冲突区；小屏时会出现横向压缩。</div></div>
+    </div>
+    <div class="screen" style="grid-template-columns:27fr 34fr 39fr">
+      <div class="panel"><div class="labelx">固定控制栏</div><div class="titlex">参数配置</div><div class="field"></div><div class="field"></div><div class="field"></div><div class="bar accent"></div><div class="titlex">算法选择</div><div class="field"></div><div class="buttonx">启动优化</div></div>
+      <div class="panel"><div class="labelx">自适应画布</div><div class="titlex">优化前后对比</div><div class="metric-row"><div class="metric"><b>10</b><span>优化前</span></div><div class="metric"><b>3</b><span>优化后</span></div><div class="metric"><b>70%</b><span>下降</span></div></div><div class="conflict"><div class="node">02</div><div class="line"></div><div class="node">05</div></div><div class="conflict"><div class="node">14</div><div class="line"></div><div class="node">15</div></div></div>
+      <div class="panel"><div class="labelx">宽结果表</div><div class="titlex">Excel 结果预览</div><div class="table"><div class="tr th"><div>序号</div><div>单位</div><div>工作频率</div><div>建议</div></div><div class="tr"><div>1</div><div>八师</div><div>2.5–3.3MHz</div><div class="suggest">保持原工作频率</div></div><div class="tr"><div>2</div><div>十八师</div><div>5.2–6GHz</div><div class="suggest">建议调整为…</div></div><div class="tr"><div>3</div><div>十八师</div><div>960–1000MHz</div><div class="suggest">保持原工作频率</div></div></div></div>
+    </div>
+  </div>
+
+  <div class="layout-card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="layout-meta">
+      <div class="layout-letter">C</div>
+      <div><div class="layout-title">冲突优先型 · 22% / 53% / 25%</div><div class="layout-desc">最突出算法效果和冲突变化，但右侧 Excel 需要横向滚动才能查看全部 12 列。</div></div>
+    </div>
+    <div class="screen" style="grid-template-columns:22fr 53fr 25fr">
+      <div class="panel"><div class="labelx">紧凑控制</div><div class="titlex">任务设置</div><div class="field"></div><div class="field"></div><div class="bar"></div><div class="field"></div><div class="buttonx">启动优化</div></div>
+      <div class="panel"><div class="labelx">大型对比画布</div><div class="titlex">优化前 10 对 → 优化后 3 对</div><div class="metric-row"><div class="metric"><b>10</b><span>原始冲突</span></div><div class="metric"><b>3</b><span>剩余冲突</span></div><div class="metric"><b>7</b><span>已消解</span></div></div><div class="conflict"><div class="node">机载雷达 02</div><div class="line"></div><div class="node">机载雷达 05</div></div><div class="conflict"><div class="node">J雷达 14</div><div class="line"></div><div class="node">数据链 15</div></div><div class="conflict"><div class="node">短波 11</div><div class="line"></div><div class="node">短波 16</div></div></div>
+      <div class="panel"><div class="labelx">窄结果表</div><div class="titlex">Excel 预览</div><div class="table"><div class="tr th" style="grid-template-columns:.5fr 1fr 1.5fr"><div>序号</div><div>型号</div><div>建议</div></div><div class="tr" style="grid-template-columns:.5fr 1fr 1.5fr"><div>1</div><div>短波通信</div><div class="suggest">保持原频率</div></div><div class="tr" style="grid-template-columns:.5fr 1fr 1.5fr"><div>2</div><div>机载雷达</div><div class="suggest">调整为 5.15…</div></div></div><div class="scrollhint"></div></div>
+    </div>
+  </div>
+</div>

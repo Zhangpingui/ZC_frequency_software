@@ -1,0 +1,88 @@
+<style>
+  .appframe { background:linear-gradient(135deg,#06172f 0%,#0a2b54 48%,#071a34 100%); border:1px solid #214d78; border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(3,20,39,.3); color:#dceeff; }
+  .apphead { height:58px; display:flex; align-items:center; padding:0 20px; border-bottom:1px solid rgba(102,172,232,.25); background:rgba(3,19,38,.72); }
+  .brand { font-weight:800; letter-spacing:.08em; color:#f2f8ff; }
+  .status { margin-left:auto; color:#69d9bd; font-size:12px; }
+  .workspace { display:grid; grid-template-columns:24fr 43fr 33fr; min-height:590px; }
+  .column { padding:16px; min-width:0; border-right:1px solid rgba(89,151,208,.22); }
+  .column:last-child { border-right:0; }
+  .eyebrow { font-size:10px; color:#64a9db; letter-spacing:.16em; text-transform:uppercase; }
+  h3 { color:#f4f9ff; margin:6px 0 14px; font-size:17px; }
+  .cardx { background:rgba(6,28,52,.78); border:1px solid #23547c; border-radius:9px; padding:12px; margin-bottom:11px; }
+  .cardtitle { font-size:12px; font-weight:700; color:#c8e7ff; margin-bottom:10px; }
+  .inputx { height:31px; border:1px solid #285a82; background:#0a2542; border-radius:5px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; padding:0 9px; color:#8eb5d4; font-size:10px; }
+  .upload { height:58px; border:1px dashed #3b729e; border-radius:7px; display:grid; place-items:center; color:#76bde9; font-size:11px; background:rgba(14,48,79,.45); }
+  .btn { height:37px; display:grid; place-items:center; border-radius:6px; background:linear-gradient(90deg,#0877b6,#10aac5); color:#fff; font-weight:700; font-size:12px; box-shadow:0 8px 18px rgba(0,126,176,.22); }
+  .btn.secondary { background:#143958; box-shadow:none; color:#a9d5f3; border:1px solid #2d638c; margin-top:8px; }
+  .metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-bottom:12px; }
+  .metric { background:rgba(5,28,53,.9); border:1px solid #285a83; border-radius:8px; padding:10px; }
+  .metric b { display:block; color:#fff; font-size:22px; line-height:1; margin-bottom:5px; }
+  .metric span { color:#789dbb; font-size:10px; }
+  .viewtoggle { display:flex; gap:5px; padding:4px; background:#071d36; border:1px solid #214b70; border-radius:7px; margin-bottom:11px; }
+  .viewtoggle div { flex:1; text-align:center; padding:7px; font-size:11px; color:#7fa6c5; border-radius:5px; }
+  .viewtoggle .active { background:#174f79; color:#dff4ff; }
+  .pair { display:grid; grid-template-columns:1fr 72px 1fr; align-items:center; gap:8px; padding:10px; border:1px solid #224f77; background:#09233f; border-radius:8px; margin-bottom:8px; }
+  .node { border-radius:20px; padding:8px 7px; text-align:center; font-size:10px; color:#fff; background:linear-gradient(90deg,#0c94cf,#4a66ce); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .confline { height:2px; background:#ff5862; position:relative; box-shadow:0 0 9px rgba(255,66,77,.45); }
+  .confline:after { content:'冲突'; position:absolute; left:50%; top:-10px; transform:translateX(-50%); background:#8e2934; color:#ffd9dc; border-radius:8px; padding:2px 5px; font-size:8px; }
+  .pager { text-align:center; color:#6790b0; font-size:10px; margin-top:12px; }
+  .filebox { display:flex; gap:11px; align-items:center; border:1px solid #2a608d; background:linear-gradient(135deg,#0c2d4e,#0a203a); border-radius:9px; padding:14px; }
+  .fileicon { width:42px; height:42px; display:grid; place-items:center; border-radius:8px; background:#0d6d68; color:#91f1d4; font-weight:900; }
+  .filename { font-size:12px; font-weight:700; color:#e5f4ff; }
+  .filemeta { font-size:9px; color:#779bb8; margin-top:4px; }
+  .checks { margin-top:10px; border-top:1px solid #1c4568; padding-top:9px; display:grid; gap:7px; }
+  .check { display:flex; justify-content:space-between; font-size:10px; color:#8bb0cc; }
+  .check b { color:#61dfba; font-weight:700; }
+  .compare { margin-top:12px; }
+  .compare-row { display:grid; grid-template-columns:58px 1fr 30px; align-items:center; gap:8px; margin:12px 0; font-size:10px; color:#94b6cf; }
+  .track { height:12px; border-radius:8px; background:#0a2038; overflow:hidden; border:1px solid #21496a; }
+  .fill-before { width:100%; height:100%; background:linear-gradient(90deg,#d14352,#ff6b62); }
+  .fill-after { width:30%; height:100%; background:linear-gradient(90deg,#0b8d79,#49d0a3); }
+  .delta { text-align:center; margin:14px 0 4px; padding:11px; border-radius:8px; background:rgba(11,115,104,.16); border:1px solid #1e786f; }
+  .delta b { color:#62e2bc; font-size:24px; }
+  .delta span { color:#83bbae; font-size:10px; margin-left:5px; }
+  .confirm { margin-top:18px; border:1px solid #5a8bb4; border-radius:10px; padding:13px; text-align:center; cursor:pointer; color:#195b8d; background:#e9f5ff; font-weight:800; }
+  .confirm.selected { background:#d8f1ff; border-color:#168ac0; }
+</style>
+
+<h2>A 方案修订：右侧改为结果输出与冲突对比</h2>
+<p class="subtitle">Excel 不在页面中展开；算法完成后直接生成带“建议”列的结果文件，并通过按钮下载。</p>
+
+<div class="appframe">
+  <div class="apphead"><div class="brand">战场频谱智能指配系统</div><div class="status">● 本地计算模式</div></div>
+  <div class="workspace">
+    <section class="column">
+      <div class="eyebrow">任务控制</div><h3>参数与算法</h3>
+      <div class="cardx"><div class="cardtitle">参数配置</div><div class="inputx"><span>频道占用率</span><span>38.0 %</span></div><div class="inputx"><span>通信链路数量</span><span>15 条</span></div><div class="inputx"><span>更多参数</span><span>展开 ▾</span></div></div>
+      <div class="cardx"><div class="cardtitle">数据接入</div><div class="upload">导入 Excel / CSV</div><div class="btn secondary">生成模拟数据</div></div>
+      <div class="cardx"><div class="cardtitle">优化算法</div><div class="inputx"><span>DQN-GNN</span><span>▾</span></div><div class="btn">启动频率优化</div></div>
+    </section>
+
+    <section class="column">
+      <div class="eyebrow">冲突态势</div><h3>用频冲突组合</h3>
+      <div class="metrics"><div class="metric"><b>23</b><span>用频需求</span></div><div class="metric"><b>10</b><span>原始冲突</span></div><div class="metric"><b>3</b><span>优化后冲突</span></div></div>
+      <div class="viewtoggle"><div>优化前 · 10</div><div class="active">优化后 · 3</div></div>
+      <div class="pair"><div class="node">02 机载雷达</div><div class="confline"></div><div class="node">05 机载雷达</div></div>
+      <div class="pair"><div class="node" style="background:linear-gradient(90deg,#6274d6,#845dbb)">03 B类端机</div><div class="confline"></div><div class="node" style="background:linear-gradient(90deg,#6274d6,#845dbb)">06 B类端机</div></div>
+      <div class="pair"><div class="node" style="background:linear-gradient(90deg,#d09027,#d3623a)">14 J雷达</div><div class="confline"></div><div class="node" style="background:linear-gradient(90deg,#d09027,#d3623a)">15 数据链</div></div>
+      <div class="pager">‹　1 / 1　›</div>
+    </section>
+
+    <section class="column">
+      <div class="eyebrow">结果输出</div><h3>频率指配结果</h3>
+      <div class="cardx">
+        <div class="filebox"><div class="fileicon">XLS</div><div><div class="filename">用频需求表_优化结果.xlsx</div><div class="filemeta">已保留原 12 列 · “建议”列已填充</div></div></div>
+        <div class="checks"><div class="check"><span>处理记录</span><b>23 / 23</b></div><div class="check"><span>调整建议</span><b>7 条</b></div><div class="check"><span>保持原频率</span><b>16 条</b></div></div>
+        <div class="btn" style="margin-top:13px">下载结果 Excel</div>
+      </div>
+      <div class="cardx compare">
+        <div class="cardtitle">优化前后冲突对比</div>
+        <div class="compare-row"><span>优化前</span><div class="track"><div class="fill-before"></div></div><b style="color:#ff7b75">10</b></div>
+        <div class="compare-row"><span>优化后</span><div class="track"><div class="fill-after"></div></div><b style="color:#62dfb6">3</b></div>
+        <div class="delta"><b>70%</b><span>冲突下降率</span></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="confirm" data-choice="confirm-a-v2" onclick="toggleSelect(this)">确认采用此修订方案</div>
